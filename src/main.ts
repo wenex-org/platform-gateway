@@ -8,7 +8,7 @@ import { NODE_ENV } from '@app/common/configs';
 import { NestFactory } from '@nestjs/core';
 import { initTracing } from 'tracing';
 
-if (NODE_ENV().IS_PRODUCTION) initTracing(['http', 'grpc', 'graphql']);
+if (NODE_ENV().IS_PRODUCTION) initTracing(['http', 'grpc']);
 
 async function bootstrap() {
   const app = await NestFactory.create(GatewayModule, { cors: true });
