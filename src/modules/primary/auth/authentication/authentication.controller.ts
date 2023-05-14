@@ -41,7 +41,6 @@ export class AuthenticationController {
     @Meta() meta: Metadata,
     @Body() data: AuthenticationDto,
   ): Promise<AuthenticationSerializer> {
-    console.log(meta);
     return AuthenticationSerializer.build(
       await lastValueFrom(this.provider.service.token(data, meta)),
     );
