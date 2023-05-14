@@ -3,9 +3,9 @@ import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
 import { Module } from '@nestjs/common';
 
-import { AuthorizationController } from './authorization.controller';
-import { clientsModuleOptions } from './authorization.const';
-import { AuthorizationProvider } from '@app/common/providers';
+import { GrantsController } from './grants.controller';
+import { clientsModuleOptions } from './grants.const';
+import { GrantsProvider } from './grants.provider';
 
 @Module({
   imports: [
@@ -20,8 +20,7 @@ import { AuthorizationProvider } from '@app/common/providers';
       maxBreadcrumbs: 10,
     }),
   ],
-  controllers: [AuthorizationController],
-  providers: [AuthorizationProvider],
-  exports: [AuthorizationProvider],
+  controllers: [GrantsController],
+  providers: [GrantsProvider],
 })
-export class AuthorizationModule {}
+export class GrantsModule {}

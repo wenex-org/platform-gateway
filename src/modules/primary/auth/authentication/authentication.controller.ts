@@ -22,7 +22,7 @@ import { ApiTags } from '@nestjs/swagger';
 import { Metadata } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
 
-import { AuthenticationProvider } from './authentication.provider';
+import { AuthenticationProvider } from '../../../../../../../libs/common/src/providers/auth/authentication.provider';
 
 @ApiTags('auth')
 @Controller('auth')
@@ -47,16 +47,22 @@ export class AuthenticationController {
   }
 
   @Post('logout')
-  async logout(@Body() token: TokenDto): Promise<ResultSerializer> {
+  async logout(
+    @Meta() meta: Metadata,
+    @Body() token: TokenDto,
+  ): Promise<ResultSerializer> {
     return ResultSerializer.build(
-      (await lastValueFrom(this.provider.service.logout(token))).result,
+      (await lastValueFrom(this.provider.service.logout(token, meta))).result,
     );
   }
 
   @Post('decrypt')
-  async decrypt(@Body() token: TokenDto): Promise<JwtTokenSerializer> {
+  async decrypt(
+    @Meta() meta: Metadata,
+    @Body() token: TokenDto,
+  ): Promise<JwtTokenSerializer> {
     return JwtTokenSerializer.build(
-      await lastValueFrom(this.provider.service.decrypt(token)),
+      await lastValueFrom(this.provider.service.decrypt(token, meta)),
     );
   }
 }
