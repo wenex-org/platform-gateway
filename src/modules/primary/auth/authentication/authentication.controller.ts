@@ -12,11 +12,14 @@ import {
   JwtTokenSerializer,
   ResultSerializer,
 } from '@app/common/serializers';
+import { MetadataInterceptor } from '@app/common/interceptors';
 import { AuthenticationDto, TokenDto } from '@app/common/dto';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
 import { ValidationPipe } from '@app/common/pipes';
+import { Meta } from '@app/common/decorators';
 import { ApiTags } from '@nestjs/swagger';
+import { Metadata } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
 
 import { AuthenticationProvider } from './authentication.provider';
@@ -26,6 +29,7 @@ import { AuthenticationProvider } from './authentication.provider';
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(
+  MetadataInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
@@ -34,10 +38,12 @@ export class AuthenticationController {
 
   @Post('token')
   async token(
+    @Meta() meta: Metadata,
     @Body() data: AuthenticationDto,
   ): Promise<AuthenticationSerializer> {
+    console.log(meta);
     return AuthenticationSerializer.build(
-      await lastValueFrom(this.provider.service.token(data)),
+      await lastValueFrom(this.provider.service.token(data, meta)),
     );
   }
 
