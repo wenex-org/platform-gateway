@@ -1,12 +1,13 @@
+import { AuthorizationProvider } from '@app/common/providers';
 import { NODE_ENV, SENTRY_DSN } from '@app/common/configs';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
-import { Module } from '@nestjs/common';
+import { Global, Module } from '@nestjs/common';
 
 import { AuthorizationController } from './authorization.controller';
 import { clientsModuleOptions } from './authorization.const';
-import { AuthorizationProvider } from '@app/common/providers';
 
+@Global()
 @Module({
   imports: [
     ClientsModule.register(clientsModuleOptions),

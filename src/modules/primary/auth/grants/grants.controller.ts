@@ -26,8 +26,8 @@ import {
   UpdateGrantOneDto,
 } from '@app/common/dto';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
+import { MetadataTakeInterceptor } from '@app/common/interceptors';
 import { Resource, Scope, SysAction } from '@app/common/enums';
-import { MetadataInterceptor } from '@app/common/interceptors';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
@@ -47,7 +47,7 @@ import { GrantsProvider } from './grants.provider';
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(
-  MetadataInterceptor,
+  MetadataTakeInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
