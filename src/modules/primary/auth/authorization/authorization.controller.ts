@@ -8,7 +8,10 @@ import {
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
-import { MetadataTakeInterceptor } from '@app/common/interceptors';
+import {
+  MetadataTakeInterceptor,
+  RateLimitInterceptor,
+} from '@app/common/interceptors';
 import { AuthorizationSerializer } from '@app/common/serializers';
 import { AuthorizationProvider } from '@app/common/providers';
 import { AuthGuard, ScopeGuard } from '@app/common/guards';
@@ -30,6 +33,7 @@ import { lastValueFrom } from 'rxjs';
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)
 @UseInterceptors(
+  RateLimitInterceptor,
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),

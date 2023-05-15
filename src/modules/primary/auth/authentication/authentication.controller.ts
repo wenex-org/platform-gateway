@@ -13,7 +13,10 @@ import {
   JwtTokenSerializer,
   ResultSerializer,
 } from '@app/common/serializers';
-import { MetadataTakeInterceptor } from '@app/common/interceptors';
+import {
+  MetadataTakeInterceptor,
+  RateLimitInterceptor,
+} from '@app/common/interceptors';
 import { AuthenticationProvider } from '@app/common/providers';
 import { AuthenticationDto, TokenDto } from '@app/common/dto';
 import { AuthGuard, ScopeGuard } from '@app/common/guards';
@@ -33,6 +36,7 @@ import { lastValueFrom } from 'rxjs';
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)
 @UseInterceptors(
+  RateLimitInterceptor,
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),

@@ -28,6 +28,7 @@ import {
 import {
   AuthorityInterceptor,
   MetadataTakeInterceptor,
+  RateLimitInterceptor,
 } from '@app/common/interceptors';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
@@ -50,6 +51,7 @@ import { GrantsProvider } from './grants.provider';
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
+  RateLimitInterceptor,
   AuthorityInterceptor,
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
