@@ -29,9 +29,9 @@ import { lastValueFrom } from 'rxjs';
 
 @ApiTags('auth')
 @Controller('auth')
-@UseGuards(AuthGuard)
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
+@UseGuards(AuthGuard, ScopeGuard)
 @UseInterceptors(
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
@@ -54,7 +54,6 @@ export class AuthenticationController {
   @Post('logout')
   @ApiBearerAuth()
   @SetScope(Scope.Auth)
-  @UseGuards(ScopeGuard)
   async logout(
     @Meta() meta: Metadata,
     @Body() token: TokenDto,
@@ -67,7 +66,6 @@ export class AuthenticationController {
   @Post('decrypt')
   @ApiBearerAuth()
   @SetScope(Scope.Auth)
-  @UseGuards(ScopeGuard)
   async decrypt(
     @Meta() meta: Metadata,
     @Body() token: TokenDto,

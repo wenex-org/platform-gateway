@@ -23,11 +23,12 @@ import { Scope } from '@app/common/enums';
 import { Metadata } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
 
+@ApiBearerAuth()
 @ApiTags('auth')
 @Controller('auth')
-@UseGuards(AuthGuard)
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
+@UseGuards(AuthGuard, ScopeGuard)
 @UseInterceptors(
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
@@ -37,9 +38,7 @@ export class AuthorizationController {
   constructor(private readonly provider: AuthorizationProvider) {}
 
   @Post('can')
-  @ApiBearerAuth()
   @SetScope(Scope.Auth)
-  @UseGuards(ScopeGuard)
   async can(
     @Meta() meta: Metadata,
     @Body() data: AuthorizationDto,
