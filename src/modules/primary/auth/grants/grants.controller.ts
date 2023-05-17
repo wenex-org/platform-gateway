@@ -4,6 +4,7 @@ import {
   Controller,
   Delete,
   Get,
+  Param,
   Patch,
   Post,
   Put,
@@ -22,22 +23,23 @@ import {
   CreateGrantDto,
   FilterDto,
   OneFilterDto,
-  UpdateGrantBulkDto,
-  UpdateGrantOneDto,
+  UpdateGrantDto,
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
+  FieldInterceptor,
+  FilterInterceptor,
   MetadataTakeInterceptor,
   RateLimitInterceptor,
 } from '@app/common/interceptors';
+import { ApiBearerAuth, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
-import { ApiBearerAuth, ApiQuery, ApiTags } from '@nestjs/swagger';
+import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
 import { Resource, Scope, SysAction } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
 import { Filter, Meta } from '@app/common/decorators';
-import { ValidationPipe } from '@app/common/pipes';
 import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
@@ -66,10 +68,10 @@ export class GrantsController {
   @ApiQuery({ type: CountFilterDto, required: false })
   async count(
     @Meta() meta: Metadata,
-    @Filter() data: CountFilterDto,
+    @Filter() filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
-      (await lastValueFrom(this.provider.service.count(toRaw(data), meta)))
+      (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
         .count,
     );
   }
@@ -77,6 +79,7 @@ export class GrantsController {
   @Post()
   @SetScope(Scope.WriteGrants)
   @SetPolicy(SysAction.Create, Resource.Grants)
+  @UseInterceptors(FieldInterceptor, FilterInterceptor)
   async create(
     @Meta() meta: Metadata,
     @Body() data: CreateGrantDto,
@@ -88,72 +91,106 @@ export class GrantsController {
 
   @Get()
   @SetScope(Scope.ReadGrants)
+  @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Read, Resource.Grants)
+  @ApiQuery({ type: FilterDto, required: false })
   async findMany(
     @Meta() meta: Metadata,
-    @Body() data: FilterDto,
+    @Filter() filter: FilterDto,
   ): Promise<GrantsSerializer> {
     return GrantsSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(data), meta)))
+      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
         .items,
     );
   }
 
   @Get(':id')
   @SetScope(Scope.ReadGrants)
+  @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Read, Resource.Grants)
+  @ApiQuery({ type: OneFilterDto, required: false })
+  @ApiParam({ type: String, name: 'id', required: true })
   async findById(
     @Meta() meta: Metadata,
-    @Body() data: OneFilterDto,
+    @Filter() filter: OneFilterDto,
+    @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<GrantSerializer> {
+    Object.assign(filter.query, { _id: id });
     return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.findById(toRaw(data), meta)),
+      await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
     );
   }
 
   @Delete(':id')
   @SetScope(Scope.WriteGrants)
+  @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Delete, Resource.Grants)
+  @ApiQuery({ type: OneFilterDto, required: false })
+  @ApiParam({ type: String, name: 'id', required: true })
   async deleteById(
     @Meta() meta: Metadata,
-    @Body() data: OneFilterDto,
+    @Filter() filter: OneFilterDto,
+    @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<GrantSerializer> {
+    Object.assign(filter.query, { _id: id });
     return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.deleteById(toRaw(data), meta)),
+      await lastValueFrom(
+        this.provider.service.deleteById(toRaw(filter), meta),
+      ),
     );
   }
 
-  @Put(':id')
+  @Put(':id/restore')
   @SetScope(Scope.WriteGrants)
+  @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Restore, Resource.Grants)
+  @ApiQuery({ type: OneFilterDto, required: false })
+  @ApiParam({ type: String, name: 'id', required: true })
   async restoreById(
     @Meta() meta: Metadata,
-    @Body() data: OneFilterDto,
+    @Filter() filter: OneFilterDto,
+    @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<GrantSerializer> {
+    Object.assign(filter.query, { _id: id });
     return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.restoreById(toRaw(data), meta)),
+      await lastValueFrom(
+        this.provider.service.restoreById(toRaw(filter), meta),
+      ),
     );
   }
 
-  @Put(':id')
+  @Delete(':id/destroy')
   @SetScope(Scope.ManageGrants)
+  @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Destroy, Resource.Grants)
+  @ApiQuery({ type: OneFilterDto, required: false })
+  @ApiParam({ type: String, name: 'id', required: true })
   async destroyById(
     @Meta() meta: Metadata,
-    @Body() data: OneFilterDto,
+    @Filter() filter: OneFilterDto,
+    @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<GrantSerializer> {
+    Object.assign(filter.query, { _id: id });
     return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.destroyById(toRaw(data), meta)),
+      await lastValueFrom(
+        this.provider.service.destroyById(toRaw(filter), meta),
+      ),
     );
   }
 
   @Patch(':id')
   @SetScope(Scope.WriteGrants)
   @SetPolicy(SysAction.Update, Resource.Grants)
+  @ApiQuery({ type: OneFilterDto, required: false })
+  @UseInterceptors(FieldInterceptor, FilterInterceptor)
+  @ApiParam({ type: String, name: 'id', required: true })
   async updateById(
     @Meta() meta: Metadata,
-    @Body() { filter, update }: UpdateGrantOneDto,
+    @Body() update: UpdateGrantDto,
+    @Filter() filter: OneFilterDto,
+    @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<GrantSerializer> {
+    Object.assign(filter.query, { _id: id });
     return GrantSerializer.build(
       await lastValueFrom(
         this.provider.service.updateById(
@@ -166,10 +203,13 @@ export class GrantsController {
 
   @Patch('bulk')
   @SetScope(Scope.ManageGrants)
+  @UseInterceptors(FieldInterceptor)
   @SetPolicy(SysAction.Update, Resource.Grants)
+  @ApiQuery({ type: CountFilterDto, required: false })
   async updateBulk(
     @Meta() meta: Metadata,
-    @Body() { filter, update }: UpdateGrantBulkDto,
+    @Body() update: UpdateGrantDto,
+    @Filter() filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (

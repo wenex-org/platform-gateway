@@ -1,6 +1,7 @@
-import { NODE_ENV, SENTRY_DSN } from '@app/common/configs';
+import { NODE_ENV, REDIS_OPTIONS, SENTRY_DSN } from '@app/common/configs';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
+import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
 import { GrantsController } from './grants.controller';
@@ -9,6 +10,7 @@ import { GrantsProvider } from './grants.provider';
 
 @Module({
   imports: [
+    RedisModule.register(REDIS_OPTIONS()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
       debug: NODE_ENV().IS_DEVELOPMENT,

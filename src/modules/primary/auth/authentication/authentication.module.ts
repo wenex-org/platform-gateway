@@ -1,8 +1,9 @@
+import { NODE_ENV, REDIS_OPTIONS, SENTRY_DSN } from '@app/common/configs';
 import { AuthenticationProvider } from '@app/common/providers';
-import { NODE_ENV, SENTRY_DSN } from '@app/common/configs';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
 import { Global, Module } from '@nestjs/common';
+import { RedisModule } from '@app/redis';
 
 import { AuthenticationController } from './authentication.controller';
 import { clientsModuleOptions } from './authentication.const';
@@ -10,6 +11,7 @@ import { clientsModuleOptions } from './authentication.const';
 @Global()
 @Module({
   imports: [
+    RedisModule.register(REDIS_OPTIONS()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
       debug: NODE_ENV().IS_DEVELOPMENT,
