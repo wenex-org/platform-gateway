@@ -7,6 +7,7 @@ import { Module } from '@nestjs/common';
 import { SessionsController } from './sessions.controller';
 import { clientsModuleOptions } from './sessions.const';
 import { SessionsProvider } from './sessions.provider';
+import { SessionsResolver } from './sessions.resolver';
 
 @Module({
   imports: [
@@ -23,6 +24,6 @@ import { SessionsProvider } from './sessions.provider';
     }),
   ],
   controllers: [SessionsController],
-  providers: [SessionsProvider],
+  providers: [SessionsProvider, SessionsResolver],
 })
 export class SessionsModule {}

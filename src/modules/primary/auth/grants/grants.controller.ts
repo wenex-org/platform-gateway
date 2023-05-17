@@ -116,7 +116,7 @@ export class GrantsController {
     );
   }
 
-  @Sse('cursor')
+  @Sse('sse')
   @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
