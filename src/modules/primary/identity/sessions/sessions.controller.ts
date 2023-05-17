@@ -17,15 +17,15 @@ import {
 } from '@nestjs/common';
 import {
   CountSerializer,
-  GrantSerializer,
-  GrantsSerializer,
+  SessionSerializer,
+  SessionsSerializer,
 } from '@app/common/serializers';
 import {
   CountFilterDto,
-  CreateGrantDto,
+  CreateSessionDto,
   FilterDto,
   OneFilterDto,
-  UpdateGrantDto,
+  UpdateSessionDto,
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
@@ -49,17 +49,17 @@ import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { lastValueFrom, map, Observable } from 'rxjs';
+import { Observable, lastValueFrom, map } from 'rxjs';
 import { plainToInstance } from 'class-transformer';
 import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
 import { Permission } from 'abacl';
 
-import { GrantsProvider } from './grants.provider';
+import { SessionsProvider } from './sessions.provider';
 
 @ApiBearerAuth()
-@ApiTags('grants')
-@Controller('grants')
+@ApiTags('sessions')
+@Controller('sessions')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
@@ -70,13 +70,13 @@ import { GrantsProvider } from './grants.provider';
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
-export class GrantsController {
-  constructor(private readonly provider: GrantsProvider) {}
+export class SessionsController {
+  constructor(private readonly provider: SessionsProvider) {}
 
   @Get('count')
-  @SetScope(Scope.ReadGrants)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: CountFilterDto, required: false })
+  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   async count(
     @Meta() meta: Metadata,
     @Filter() filter: CountFilterDto,
@@ -88,29 +88,29 @@ export class GrantsController {
   }
 
   @Post()
-  @SetScope(Scope.WriteGrants)
   @UseInterceptors(CreateInterceptor)
-  @SetPolicy(SysAction.Create, Resource.Grants)
+  @SetScope(Scope.WriteIdentitySessions)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
+  @SetPolicy(SysAction.Create, Resource.IdentitySessions)
   async create(
     @Meta() meta: Metadata,
-    @Body() data: CreateGrantDto,
-  ): Promise<GrantSerializer> {
-    return GrantSerializer.build(
+    @Body() data: CreateSessionDto,
+  ): Promise<SessionSerializer> {
+    return SessionSerializer.build(
       await lastValueFrom(this.provider.service.create(data, meta)),
     );
   }
 
   @Get()
-  @SetScope(Scope.ReadGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: FilterDto, required: false })
+  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   async findMany(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Promise<GrantsSerializer> {
-    return GrantsSerializer.build(
+  ): Promise<SessionsSerializer> {
+    return SessionsSerializer.build(
       (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
         .items,
     );
@@ -120,7 +120,7 @@ export class GrantsController {
   @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
-  @ApiResponse({ type: GrantSerializer, status: HttpStatus.OK })
+  @ApiResponse({ type: SessionSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
@@ -131,42 +131,42 @@ export class GrantsController {
         (data) =>
           ({
             id: data.id,
-            data: perm.filter(plainToInstance(GrantSerializer, data)),
+            data: perm.filter(plainToInstance(SessionSerializer, data)),
           } as unknown as MessageEvent),
       ),
     );
   }
 
   @Get(':id')
-  @SetScope(Scope.ReadGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
+  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   @ApiParam({ type: String, name: 'id', required: true })
   async findById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
+  ): Promise<SessionSerializer> {
     Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
+    return SessionSerializer.build(
       await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
     );
   }
 
   @Delete(':id')
-  @SetScope(Scope.WriteGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Delete, Resource.Grants)
+  @SetScope(Scope.WriteIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
+  @SetPolicy(SysAction.Delete, Resource.IdentitySessions)
   async deleteById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
+  ): Promise<SessionSerializer> {
     Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
+    return SessionSerializer.build(
       await lastValueFrom(
         this.provider.service.deleteById(toRaw(filter), meta),
       ),
@@ -174,18 +174,18 @@ export class GrantsController {
   }
 
   @Put(':id/restore')
-  @SetScope(Scope.WriteGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Restore, Resource.Grants)
+  @SetScope(Scope.WriteIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
+  @SetPolicy(SysAction.Restore, Resource.IdentitySessions)
   async restoreById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
+  ): Promise<SessionSerializer> {
     Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
+    return SessionSerializer.build(
       await lastValueFrom(
         this.provider.service.restoreById(toRaw(filter), meta),
       ),
@@ -193,18 +193,18 @@ export class GrantsController {
   }
 
   @Delete(':id/destroy')
-  @SetScope(Scope.ManageGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Destroy, Resource.Grants)
+  @SetScope(Scope.ManageIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
+  @SetPolicy(SysAction.Destroy, Resource.IdentitySessions)
   async destroyById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
+  ): Promise<SessionSerializer> {
     Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
+    return SessionSerializer.build(
       await lastValueFrom(
         this.provider.service.destroyById(toRaw(filter), meta),
       ),
@@ -212,19 +212,19 @@ export class GrantsController {
   }
 
   @Patch(':id')
-  @SetScope(Scope.WriteGrants)
-  @SetPolicy(SysAction.Update, Resource.Grants)
+  @SetScope(Scope.WriteIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
+  @SetPolicy(SysAction.Update, Resource.IdentitySessions)
   async updateById(
     @Meta() meta: Metadata,
-    @Body() update: UpdateGrantDto,
+    @Body() update: UpdateSessionDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
+  ): Promise<SessionSerializer> {
     Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
+    return SessionSerializer.build(
       await lastValueFrom(
         this.provider.service.updateById(
           { update, filter: toRaw(filter) },
@@ -235,13 +235,13 @@ export class GrantsController {
   }
 
   @Patch('bulk')
-  @SetScope(Scope.ManageGrants)
   @UseInterceptors(FieldInterceptor)
-  @SetPolicy(SysAction.Update, Resource.Grants)
+  @SetScope(Scope.ManageIdentitySessions)
   @ApiQuery({ type: CountFilterDto, required: false })
+  @SetPolicy(SysAction.Update, Resource.IdentitySessions)
   async updateBulk(
     @Meta() meta: Metadata,
-    @Body() update: UpdateGrantDto,
+    @Body() update: UpdateSessionDto,
     @Filter() filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
