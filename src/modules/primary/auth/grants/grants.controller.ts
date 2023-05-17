@@ -27,6 +27,7 @@ import {
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
+  CreateInterceptor,
   FieldInterceptor,
   FilterInterceptor,
   MetadataTakeInterceptor,
@@ -51,9 +52,9 @@ import { GrantsProvider } from './grants.provider';
 @Controller('grants')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
+@UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
-  RateLimitInterceptor,
   AuthorityInterceptor,
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
@@ -78,6 +79,7 @@ export class GrantsController {
 
   @Post()
   @SetScope(Scope.WriteGrants)
+  @UseInterceptors(CreateInterceptor)
   @SetPolicy(SysAction.Create, Resource.Grants)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   async create(
