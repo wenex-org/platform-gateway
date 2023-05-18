@@ -25,5 +25,6 @@ import { SessionsResolver } from './sessions.resolver';
   ],
   controllers: [SessionsController],
   providers: [SessionsProvider, SessionsResolver],
+  exports: [SessionsResolver],
 })
 export class SessionsModule {}
