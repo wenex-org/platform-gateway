@@ -6,7 +6,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import {
-  GqlAuthorityInterceptor,
+  AuthorityInterceptor,
   MetadataTakeInterceptor,
   RateLimitInterceptor,
 } from '@app/common/interceptors';
@@ -14,6 +14,7 @@ import { CountSerializer, SessionSerializer } from '@app/common/serializers';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { Resource, Scope, SysAction } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
+import { GraphqlInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
 import { Args, Query, Resolver } from '@nestjs/graphql';
 import { Filter, Meta } from '@app/common/decorators';
@@ -31,9 +32,10 @@ import { SessionsProvider } from './sessions.provider';
 @UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
-  GqlAuthorityInterceptor,
+  AuthorityInterceptor,
   MetadataTakeInterceptor,
   ClassSerializerInterceptor,
+  new GraphqlInterceptor({ version: true }),
 )
 export class SessionsResolver {
   constructor(private readonly provider: SessionsProvider) {}
