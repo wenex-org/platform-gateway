@@ -2,10 +2,12 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { GraphQLModule } from '@nestjs/graphql';
+import GraphQLJSON from 'graphql-type-json';
 import { HealthModule } from '@app/health';
 import { Module } from '@nestjs/common';
-import * as modules from './modules';
 import { join } from 'path';
+
+import * as modules from './modules';
 
 @Module({
   imports: [
@@ -16,6 +18,7 @@ import { join } from 'path';
     GraphQLModule.forRoot<ApolloDriverConfig>({
       playground: false,
       driver: ApolloDriver,
+      resolvers: { JSON: GraphQLJSON },
       autoSchemaFile: join(process.cwd(), 'schema.gql'),
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),

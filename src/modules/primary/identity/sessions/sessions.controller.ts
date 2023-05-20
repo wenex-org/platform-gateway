@@ -34,6 +34,7 @@ import {
   FilterInterceptor,
   MetadataTakeInterceptor,
   RateLimitInterceptor,
+  UpdateInterceptor,
 } from '@app/common/interceptors';
 import {
   ApiBearerAuth,
@@ -212,6 +213,7 @@ export class SessionsController {
   }
 
   @Patch(':id')
+  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.WriteIdentitySessions)
   @ApiQuery({ type: OneFilterDto, required: false })
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
@@ -236,6 +238,7 @@ export class SessionsController {
 
   @Patch('bulk')
   @UseInterceptors(FieldInterceptor)
+  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentitySessions)
   @ApiQuery({ type: CountFilterDto, required: false })
   @SetPolicy(SysAction.Update, Resource.IdentitySessions)
