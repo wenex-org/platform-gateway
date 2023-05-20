@@ -1,6 +1,7 @@
 import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin/landingPage/default';
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
+import { ComplexityPlugin, DateScalar } from './common';
 import { GraphQLModule } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { HealthModule } from '@app/health';
@@ -23,5 +24,6 @@ import * as modules from './modules';
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),
   ],
+  providers: [DateScalar, ComplexityPlugin],
 })
 export class GatewayModule {}
