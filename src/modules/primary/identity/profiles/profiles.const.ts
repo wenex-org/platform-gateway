@@ -3,19 +3,22 @@ import { APP } from '@app/common/consts';
 import { join } from 'path';
 
 const {
-  IDENTITY: { USERS },
+  IDENTITY: { PROFILES },
 } = APP;
 
 export const clientsModuleOptions: ClientsModuleOptions = [
   {
-    // User Service
-    name: USERS.PACKAGE.SYMBOL,
+    // Profile Service
+    name: PROFILES.PACKAGE.SYMBOL,
     transport: Transport.GRPC,
     options: {
       loader: { keepCase: true },
-      package: USERS.PACKAGE.NAME,
-      url: `0.0.0.0:${USERS.GRPC_PORT}`,
-      protoPath: join(__dirname, 'modules/primary/identity/users/users.proto'),
+      package: PROFILES.PACKAGE.NAME,
+      url: `0.0.0.0:${PROFILES.GRPC_PORT}`,
+      protoPath: join(
+        __dirname,
+        'modules/primary/identity/profiles/profiles.proto',
+      ),
     },
   },
 ];

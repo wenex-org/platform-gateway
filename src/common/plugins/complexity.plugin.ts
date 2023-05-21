@@ -32,9 +32,9 @@ export class ComplexityPlugin implements ApolloServerPlugin {
           ],
         });
 
-        if (complexity >= 50) {
+        if (complexity >= 20) {
           throw new GraphQLError(
-            `Query is too complex ${complexity}, Maximum allowed complexity is 50`,
+            `Query is too complex ${complexity}, Maximum allowed complexity is 20`,
           );
         }
 

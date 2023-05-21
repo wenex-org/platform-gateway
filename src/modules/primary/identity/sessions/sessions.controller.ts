@@ -132,7 +132,7 @@ export class SessionsController {
         (data) =>
           ({
             id: data.id,
-            data: perm.filter(plainToInstance(SessionSerializer, data)),
+            data: plainToInstance(SessionSerializer, perm.filter(data)),
           } as unknown as MessageEvent),
       ),
     );

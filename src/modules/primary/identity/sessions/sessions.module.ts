@@ -8,6 +8,7 @@ import { clientsModuleOptions } from './sessions.const';
 import { SessionsController } from './sessions.controller';
 import { SessionsProvider } from './sessions.provider';
 import { SessionsResolver } from './sessions.resolver';
+import { UsersFieldResolver } from './resolvers';
 import { UsersModule } from '../users';
 
 @Module({
@@ -26,7 +27,7 @@ import { UsersModule } from '../users';
     }),
   ],
   controllers: [SessionsController],
-  providers: [SessionsProvider, SessionsResolver],
+  providers: [SessionsProvider, SessionsResolver, UsersFieldResolver],
   exports: [SessionsProvider],
 })
 export class SessionsModule {}

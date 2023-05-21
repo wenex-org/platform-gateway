@@ -16,15 +16,15 @@ import {
 } from '@app/common/interceptors';
 import {
   CountSerializer,
-  SessionSerializer,
-  SessionsSerializer,
+  ProfileSerializer,
+  ProfilesSerializer,
 } from '@app/common/serializers';
 import {
   CountFilterDto,
-  CreateSessionDto,
+  CreateProfileDto,
   FilterDto,
   OneFilterDto,
-  UpdateSessionDto,
+  UpdateProfileDto,
 } from '@app/common/dto';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
@@ -38,11 +38,11 @@ import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
 import { lastValueFrom } from 'rxjs';
 
-import { SessionsProvider } from './sessions.provider';
+import { ProfilesProvider } from './profiles.provider';
 
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
-@Resolver(() => SessionSerializer)
+@Resolver(() => ProfileSerializer)
 @UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
@@ -51,13 +51,13 @@ import { SessionsProvider } from './sessions.provider';
   ClassSerializerInterceptor,
   new GraphqlInterceptor({ version: true }),
 )
-export class SessionsResolver {
-  constructor(private readonly provider: SessionsProvider) {}
+export class ProfilesResolver {
+  constructor(private readonly provider: ProfilesProvider) {}
 
   @Query(() => CountSerializer)
-  @SetScope(Scope.ReadIdentitySessions)
-  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
-  async countSession(
+  @SetScope(Scope.ReadIdentityProfiles)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
+  async countProfile(
     @Meta() meta: Metadata,
     @Filter() @Args('filter') filter: CountFilterDto,
   ): Promise<CountSerializer> {
@@ -67,113 +67,113 @@ export class SessionsResolver {
     );
   }
 
-  @Mutation(() => SessionSerializer)
+  @Mutation(() => ProfileSerializer)
   @UseInterceptors(CreateInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteIdentityProfiles)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Create, Resource.IdentitySessions)
-  async createSession(
+  @SetPolicy(SysAction.Create, Resource.IdentityProfiles)
+  async createProfile(
     @Meta() meta: Metadata,
-    @Args('data') data: CreateSessionDto,
-  ): Promise<SessionSerializer> {
-    return SessionSerializer.build(
+    @Args('data', { type: () => CreateProfileDto }) data: CreateProfileDto,
+  ): Promise<ProfileSerializer> {
+    return ProfileSerializer.build(
       await lastValueFrom(this.provider.service.create(data, meta)),
     );
   }
 
-  @Query(() => SessionsSerializer)
+  @Query(() => ProfilesSerializer)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
-  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
-  async findSessions(
+  @SetScope(Scope.ReadIdentityProfiles)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
+  async findProfiles(
     @Meta() meta: Metadata,
     @Filter() @Args('filter') filter: FilterDto,
-  ): Promise<SessionsSerializer> {
-    return SessionsSerializer.build(
+  ): Promise<ProfilesSerializer> {
+    return ProfilesSerializer.build(
       (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
         .items,
     );
   }
 
-  @Query(() => SessionSerializer)
+  @Query(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
-  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
-  async findSession(
+  @SetScope(Scope.ReadIdentityProfiles)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
+  async findProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<SessionSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return SessionSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
     );
   }
 
-  @Mutation(() => SessionSerializer)
+  @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
-  @SetPolicy(SysAction.Delete, Resource.IdentitySessions)
-  async deleteSession(
+  @SetScope(Scope.WriteIdentityProfiles)
+  @SetPolicy(SysAction.Delete, Resource.IdentityProfiles)
+  async deleteProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<SessionSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return SessionSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.deleteById(toRaw(filter), meta),
       ),
     );
   }
 
-  @Mutation(() => SessionSerializer)
+  @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
-  @SetPolicy(SysAction.Restore, Resource.IdentitySessions)
-  async restoreSession(
+  @SetScope(Scope.WriteIdentityProfiles)
+  @SetPolicy(SysAction.Restore, Resource.IdentityProfiles)
+  async restoreProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<SessionSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return SessionSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.restoreById(toRaw(filter), meta),
       ),
     );
   }
 
-  @Mutation(() => SessionSerializer)
+  @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
-  @SetPolicy(SysAction.Destroy, Resource.IdentitySessions)
-  async destroySession(
+  @SetScope(Scope.ManageIdentityProfiles)
+  @SetPolicy(SysAction.Destroy, Resource.IdentityProfiles)
+  async destroyProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<SessionSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return SessionSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.destroyById(toRaw(filter), meta),
       ),
     );
   }
 
-  @Mutation(() => SessionSerializer)
+  @Mutation(() => ProfileSerializer)
   @UseInterceptors(UpdateInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteIdentityProfiles)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Update, Resource.IdentitySessions)
-  async updateSession(
+  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
+  async updateProfile(
     @Args('id', ParseMongoIdPipe) id: string,
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Args('update') update: UpdateSessionDto,
-  ): Promise<SessionSerializer> {
+    @Args('update') update: UpdateProfileDto,
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return SessionSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.updateById(
           { update, filter: toRaw(filter) },
@@ -186,11 +186,11 @@ export class SessionsResolver {
   @Mutation(() => CountSerializer)
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
-  @SetPolicy(SysAction.Update, Resource.IdentitySessions)
-  async updateSessions(
+  @SetScope(Scope.ManageIdentityProfiles)
+  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
+  async updateProfiles(
     @Meta() meta: Metadata,
-    @Args('update') update: UpdateSessionDto,
+    @Args('update') update: UpdateProfileDto,
     @Filter() @Args('filter') filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(

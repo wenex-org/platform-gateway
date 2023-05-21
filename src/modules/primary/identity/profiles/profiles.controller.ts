@@ -17,15 +17,15 @@ import {
 } from '@nestjs/common';
 import {
   CountSerializer,
-  UserSerializer,
-  UsersSerializer,
+  ProfileSerializer,
+  ProfilesSerializer,
 } from '@app/common/serializers';
 import {
   CountFilterDto,
-  CreateUserDto,
+  CreateProfileDto,
   FilterDto,
   OneFilterDto,
-  UpdateUserDto,
+  UpdateProfileDto,
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
@@ -56,11 +56,11 @@ import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
 import { Permission } from 'abacl';
 
-import { UsersProvider } from './users.provider';
+import { ProfilesProvider } from './profiles.provider';
 
 @ApiBearerAuth()
 @ApiTags('identity')
-@Controller('users')
+@Controller('profiles')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
@@ -71,13 +71,13 @@ import { UsersProvider } from './users.provider';
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
-export class UsersController {
-  constructor(private readonly provider: UsersProvider) {}
+export class ProfilesController {
+  constructor(private readonly provider: ProfilesProvider) {}
 
   @Get('count')
-  @SetScope(Scope.ReadIdentityUsers)
+  @SetScope(Scope.ReadIdentityProfiles)
   @ApiQuery({ type: CountFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   async count(
     @Meta() meta: Metadata,
     @Filter() filter: CountFilterDto,
@@ -90,38 +90,38 @@ export class UsersController {
 
   @Post()
   @UseInterceptors(CreateInterceptor)
-  @SetScope(Scope.WriteIdentityUsers)
+  @SetScope(Scope.WriteIdentityProfiles)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Create, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Create, Resource.IdentityProfiles)
   async create(
     @Meta() meta: Metadata,
-    @Body() data: CreateUserDto,
-  ): Promise<UserSerializer> {
-    return UserSerializer.build(
+    @Body() data: CreateProfileDto,
+  ): Promise<ProfileSerializer> {
+    return ProfileSerializer.build(
       await lastValueFrom(this.provider.service.create(data, meta)),
     );
   }
 
   @Get()
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentityUsers)
+  @SetScope(Scope.ReadIdentityProfiles)
   @ApiQuery({ type: FilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   async findMany(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Promise<UsersSerializer> {
-    return UsersSerializer.build(
+  ): Promise<ProfilesSerializer> {
+    return ProfilesSerializer.build(
       (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
         .items,
     );
   }
 
   @Sse('sse')
-  @SetScope(Scope.ReadIdentityUsers)
+  @SetScope(Scope.ReadIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
-  @ApiResponse({ type: UserSerializer, status: HttpStatus.OK })
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
+  @ApiResponse({ type: ProfileSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
@@ -132,7 +132,7 @@ export class UsersController {
         (data) =>
           ({
             id: data.id,
-            data: plainToInstance(UserSerializer, perm.filter(data)),
+            data: plainToInstance(ProfileSerializer, perm.filter(data)),
           } as unknown as MessageEvent),
       ),
     );
@@ -140,34 +140,34 @@ export class UsersController {
 
   @Get(':id')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentityUsers)
+  @SetScope(Scope.ReadIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   @ApiParam({ type: String, name: 'id', required: true })
   async findById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
     );
   }
 
   @Delete(':id')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentityUsers)
+  @SetScope(Scope.WriteIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Delete, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Delete, Resource.IdentityProfiles)
   async deleteById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.deleteById(toRaw(filter), meta),
       ),
@@ -176,17 +176,17 @@ export class UsersController {
 
   @Put(':id/restore')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentityUsers)
+  @SetScope(Scope.WriteIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Restore, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Restore, Resource.IdentityProfiles)
   async restoreById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.restoreById(toRaw(filter), meta),
       ),
@@ -195,17 +195,17 @@ export class UsersController {
 
   @Delete(':id/destroy')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ManageIdentityUsers)
+  @SetScope(Scope.ManageIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Destroy, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Destroy, Resource.IdentityProfiles)
   async destroyById(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.destroyById(toRaw(filter), meta),
       ),
@@ -214,19 +214,19 @@ export class UsersController {
 
   @Patch(':id')
   @UseInterceptors(UpdateInterceptor)
-  @SetScope(Scope.WriteIdentityUsers)
+  @SetScope(Scope.WriteIdentityProfiles)
   @ApiQuery({ type: OneFilterDto, required: false })
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Update, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
   async updateById(
     @Meta() meta: Metadata,
-    @Body() update: UpdateUserDto,
+    @Body() update: UpdateProfileDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
+  ): Promise<ProfileSerializer> {
     Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
+    return ProfileSerializer.build(
       await lastValueFrom(
         this.provider.service.updateById(
           { update, filter: toRaw(filter) },
@@ -239,12 +239,12 @@ export class UsersController {
   @Patch('bulk')
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
-  @SetScope(Scope.ManageIdentityUsers)
+  @SetScope(Scope.ManageIdentityProfiles)
   @ApiQuery({ type: CountFilterDto, required: false })
-  @SetPolicy(SysAction.Update, Resource.IdentityUsers)
+  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
   async updateBulk(
     @Meta() meta: Metadata,
-    @Body() update: UpdateUserDto,
+    @Body() update: UpdateProfileDto,
     @Filter() filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(

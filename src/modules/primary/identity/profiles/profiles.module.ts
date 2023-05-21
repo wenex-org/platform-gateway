@@ -4,16 +4,13 @@ import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
-import { clientsModuleOptions } from './users.const';
-import { UsersController } from './users.controller';
-import { UsersProvider } from './users.provider';
-import { UsersResolver } from './users.resolver';
-import { ProfilesFieldResolver } from './resolvers';
-import { ProfilesModule } from '../profiles';
+import { clientsModuleOptions } from './profiles.const';
+import { ProfilesController } from './profiles.controller';
+import { ProfilesProvider } from './profiles.provider';
+import { ProfilesResolver } from './profiles.resolver';
 
 @Module({
   imports: [
-    ProfilesModule,
     RedisModule.register(REDIS_OPTIONS()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
@@ -26,8 +23,8 @@ import { ProfilesModule } from '../profiles';
       maxBreadcrumbs: 10,
     }),
   ],
-  controllers: [UsersController],
-  providers: [UsersProvider, UsersResolver, ProfilesFieldResolver],
-  exports: [UsersProvider],
+  controllers: [ProfilesController],
+  providers: [ProfilesProvider, ProfilesResolver],
+  exports: [ProfilesProvider],
 })
-export class UsersModule {}
+export class ProfilesModule {}
