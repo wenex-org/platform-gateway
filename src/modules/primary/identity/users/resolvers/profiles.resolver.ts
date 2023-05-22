@@ -33,7 +33,7 @@ export class ProfilesFieldResolver extends FieldResolver {
   }
 
   @ResolveField(() => ProfileSerializer)
-  async profile_owner(
+  async user_owner(
     @Meta() meta: Metadata,
     @Parent() { owner }: Profile,
     @Filter() filter: OneFilterDto,
@@ -51,7 +51,7 @@ export class ProfilesFieldResolver extends FieldResolver {
   }
 
   @ResolveField(() => ProfilesSerializer)
-  async profile_shares(
+  async user_shares(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
     @Parent() { shares }: Profile,
