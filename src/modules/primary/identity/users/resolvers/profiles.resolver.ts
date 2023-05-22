@@ -8,19 +8,17 @@ import { Resource, Scope, SysAction } from '@app/common/enums';
 import { AuthorizationProvider } from '@app/common/providers';
 import { FilterDto, OneFilterDto } from '@app/common/dto';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { UseFilters, UsePipes } from '@nestjs/common';
 import { Filter, Meta } from '@app/common/decorators';
 import { plainToInstance } from 'class-transformer';
 import { FieldResolver } from '@app/common/classes';
-import { ValidationPipe } from '@app/common/pipes';
 import { Profile } from '@app/common/interfaces';
-import { toRaw } from '@app/common/utils';
+import { UseFilters } from '@nestjs/common';
 import { lastValueFrom, map } from 'rxjs';
+import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
 
 import { ProfilesProvider } from '../../profiles/profiles.provider';
 
-@UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @Resolver(() => UserSerializer)
 export class ProfilesFieldResolver extends FieldResolver {
