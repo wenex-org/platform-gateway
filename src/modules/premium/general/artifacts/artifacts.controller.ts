@@ -49,16 +49,15 @@ import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { lastValueFrom, map, Observable } from 'rxjs';
 import { plainToInstance } from 'class-transformer';
-import { toRaw } from '@app/common/utils';
 import { Metadata } from '@grpc/grpc-js';
+import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
 import { ArtifactsProvider } from './artifacts.provider';
 
 @ApiBearerAuth()
-@ApiTags('artifacts')
+@ApiTags('general')
 @Controller('artifacts')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
@@ -77,14 +76,8 @@ export class ArtifactsController {
   @SetScope(Scope.ReadArtifacts)
   @SetPolicy(SysAction.Read, Resource.Artifacts)
   @ApiQuery({ type: CountFilterDto, required: false })
-  async count(
-    @Meta() meta: Metadata,
-    @Filter() filter: CountFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
-      (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
-        .count,
-    );
+  async count(@Filter() filter: CountFilterDto): Promise<CountSerializer> {
+    return CountSerializer.build(await this.provider.count(filter));
   }
 
   @Post()
@@ -96,9 +89,7 @@ export class ArtifactsController {
     @Meta() meta: Metadata,
     @Body() data: CreateArtifactDto,
   ): Promise<ArtifactSerializer> {
-    return ArtifactSerializer.build(
-      await lastValueFrom(this.provider.service.create(data, meta)),
-    );
+    return ArtifactSerializer.build(await this.provider.create(data, meta));
   }
 
   @Get()
@@ -106,14 +97,8 @@ export class ArtifactsController {
   @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Read, Resource.Artifacts)
   @ApiQuery({ type: FilterDto, required: false })
-  async findMany(
-    @Meta() meta: Metadata,
-    @Filter() filter: FilterDto,
-  ): Promise<ArtifactsSerializer> {
-    return ArtifactsSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
-        .items,
-    );
+  async findMany(@Filter() filter: FilterDto): Promise<ArtifactsSerializer> {
+    return ArtifactsSerializer.build(await this.provider.findMany(filter));
   }
 
   @Sse('sse')
@@ -122,11 +107,10 @@ export class ArtifactsController {
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   @ApiResponse({ type: ArtifactSerializer, status: HttpStatus.OK })
   cursor(
-    @Meta() meta: Metadata,
     @Perm() perm: Permission,
     @Filter() filter: OneFilterDto,
   ): Observable<MessageEvent> {
-    return this.provider.service.cursor(toRaw(filter), meta).pipe(
+    return this.provider.cursor(filter).pipe(
       map(
         (data) =>
           ({
@@ -144,14 +128,11 @@ export class ArtifactsController {
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
   async findById(
-    @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<ArtifactSerializer> {
     Object.assign(filter.query, { _id: id });
-    return ArtifactSerializer.build(
-      await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
-    );
+    return ArtifactSerializer.build(await this.provider.findById(filter));
   }
 
   @Delete(':id')
@@ -167,9 +148,7 @@ export class ArtifactsController {
   ): Promise<ArtifactSerializer> {
     Object.assign(filter.query, { _id: id });
     return ArtifactSerializer.build(
-      await lastValueFrom(
-        this.provider.service.deleteById(toRaw(filter), meta),
-      ),
+      await this.provider.deleteById(filter, meta),
     );
   }
 
@@ -186,9 +165,7 @@ export class ArtifactsController {
   ): Promise<ArtifactSerializer> {
     Object.assign(filter.query, { _id: id });
     return ArtifactSerializer.build(
-      await lastValueFrom(
-        this.provider.service.restoreById(toRaw(filter), meta),
-      ),
+      await this.provider.restoreById(filter, meta),
     );
   }
 
@@ -199,16 +176,11 @@ export class ArtifactsController {
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
   async destroyById(
-    @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
   ): Promise<ArtifactSerializer> {
     Object.assign(filter.query, { _id: id });
-    return ArtifactSerializer.build(
-      await lastValueFrom(
-        this.provider.service.destroyById(toRaw(filter), meta),
-      ),
-    );
+    return ArtifactSerializer.build(await this.provider.destroyById(filter));
   }
 
   @Patch(':id')
@@ -225,12 +197,7 @@ export class ArtifactsController {
   ): Promise<ArtifactSerializer> {
     Object.assign(filter.query, { _id: id });
     return ArtifactSerializer.build(
-      await lastValueFrom(
-        this.provider.service.updateById(
-          { update, filter: toRaw(filter) },
-          meta,
-        ),
-      ),
+      await this.provider.updateById(filter, update, meta),
     );
   }
 
@@ -245,14 +212,7 @@ export class ArtifactsController {
     @Filter() filter: CountFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
-      (
-        await lastValueFrom(
-          this.provider.service.updateBulk(
-            { update, filter: toRaw(filter) },
-            meta,
-          ),
-        )
-      ).count,
+      await this.provider.updateBulk(filter, update, meta),
     );
   }
 }

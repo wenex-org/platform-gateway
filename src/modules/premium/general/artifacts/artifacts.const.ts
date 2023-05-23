@@ -12,8 +12,9 @@ export const clientsModuleOptions: ClientsModuleOptions = [
     name: ARTIFACTS.SERVICE.SYMBOL,
     transport: Transport.KAFKA,
     options: {
-      client: { brokers: [KAFKA_CONFIG()] },
+      subscribe: { fromBeginning: true },
       consumer: { groupId: ARTIFACTS.CONSUMER.GROUP_ID },
+      client: { clientId: ARTIFACTS.CLIENT.ID, brokers: [KAFKA_CONFIG()] },
     },
   },
 ];
