@@ -20,6 +20,7 @@ import * as modules from './modules';
       playground: false,
       driver: ApolloDriver,
       resolvers: { JSON: GraphQLJSON },
+      subscriptions: { 'graphql-ws': true },
       autoSchemaFile: join(process.cwd(), 'schema.gql'),
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),
