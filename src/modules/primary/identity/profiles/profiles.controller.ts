@@ -21,7 +21,7 @@ import {
   ProfilesSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateProfileDto,
   FilterDto,
   OneFilterDto,
@@ -76,11 +76,11 @@ export class ProfilesController {
 
   @Get('count')
   @SetScope(Scope.ReadIdentityProfiles)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   async count(
     @Meta() meta: Metadata,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
@@ -240,12 +240,12 @@ export class ProfilesController {
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentityProfiles)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
   async updateBulk(
     @Meta() meta: Metadata,
     @Body() update: UpdateProfileDto,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (

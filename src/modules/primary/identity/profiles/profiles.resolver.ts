@@ -20,7 +20,7 @@ import {
   ProfilesSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateProfileDto,
   FilterDto,
   OneFilterDto,
@@ -59,7 +59,7 @@ export class ProfilesResolver {
   @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   async countProfile(
     @Meta() meta: Metadata,
-    @Filter() @Args('filter') filter: CountFilterDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
@@ -191,7 +191,7 @@ export class ProfilesResolver {
   async updateProfiles(
     @Meta() meta: Metadata,
     @Args('update') update: UpdateProfileDto,
-    @Filter() @Args('filter') filter: CountFilterDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (

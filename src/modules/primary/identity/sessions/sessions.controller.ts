@@ -21,7 +21,7 @@ import {
   SessionsSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateSessionDto,
   FilterDto,
   OneFilterDto,
@@ -76,11 +76,11 @@ export class SessionsController {
 
   @Get('count')
   @SetScope(Scope.ReadIdentitySessions)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   async count(
     @Meta() meta: Metadata,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
@@ -240,12 +240,12 @@ export class SessionsController {
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentitySessions)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   @SetPolicy(SysAction.Update, Resource.IdentitySessions)
   async updateBulk(
     @Meta() meta: Metadata,
     @Body() update: UpdateSessionDto,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (

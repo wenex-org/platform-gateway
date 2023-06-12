@@ -21,7 +21,7 @@ import {
   ArtifactsSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateArtifactDto,
   FilterDto,
   OneFilterDto,
@@ -75,8 +75,8 @@ export class ArtifactsController {
   @Get('count')
   @SetScope(Scope.ReadArtifacts)
   @SetPolicy(SysAction.Read, Resource.Artifacts)
-  @ApiQuery({ type: CountFilterDto, required: false })
-  async count(@Filter() filter: CountFilterDto): Promise<CountSerializer> {
+  @ApiQuery({ type: QueryFilterDto, required: false })
+  async count(@Filter() filter: QueryFilterDto): Promise<CountSerializer> {
     return CountSerializer.build(await this.provider.count(filter));
   }
 
@@ -205,11 +205,11 @@ export class ArtifactsController {
   @SetScope(Scope.ManageArtifacts)
   @UseInterceptors(FieldInterceptor)
   @SetPolicy(SysAction.Update, Resource.Artifacts)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   async updateBulk(
     @Meta() meta: Metadata,
     @Body() update: UpdateArtifactDto,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       await this.provider.updateBulk(filter, update, meta),

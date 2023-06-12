@@ -21,7 +21,7 @@ import {
   GrantsSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateGrantDto,
   FilterDto,
   OneFilterDto,
@@ -76,10 +76,10 @@ export class GrantsController {
   @Get('count')
   @SetScope(Scope.ReadGrants)
   @SetPolicy(SysAction.Read, Resource.Grants)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   async count(
     @Meta() meta: Metadata,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
@@ -238,11 +238,11 @@ export class GrantsController {
   @SetScope(Scope.ManageGrants)
   @UseInterceptors(FieldInterceptor)
   @SetPolicy(SysAction.Update, Resource.Grants)
-  @ApiQuery({ type: CountFilterDto, required: false })
+  @ApiQuery({ type: QueryFilterDto, required: false })
   async updateBulk(
     @Meta() meta: Metadata,
     @Body() update: UpdateGrantDto,
-    @Filter() filter: CountFilterDto,
+    @Filter() filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (

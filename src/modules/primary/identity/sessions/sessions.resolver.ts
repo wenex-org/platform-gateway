@@ -20,7 +20,7 @@ import {
   SessionsSerializer,
 } from '@app/common/serializers';
 import {
-  CountFilterDto,
+  QueryFilterDto,
   CreateSessionDto,
   FilterDto,
   OneFilterDto,
@@ -59,7 +59,7 @@ export class SessionsResolver {
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   async countSession(
     @Meta() meta: Metadata,
-    @Filter() @Args('filter') filter: CountFilterDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
@@ -191,7 +191,7 @@ export class SessionsResolver {
   async updateSessions(
     @Meta() meta: Metadata,
     @Args('update') update: UpdateSessionDto,
-    @Filter() @Args('filter') filter: CountFilterDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Promise<CountSerializer> {
     return CountSerializer.build(
       (
