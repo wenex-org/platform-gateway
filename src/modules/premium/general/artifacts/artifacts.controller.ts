@@ -16,7 +16,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import {
-  CountSerializer,
+  TotalSerializer,
   ArtifactSerializer,
   ArtifactsSerializer,
 } from '@app/common/serializers';
@@ -76,8 +76,8 @@ export class ArtifactsController {
   @SetScope(Scope.ReadArtifacts)
   @SetPolicy(SysAction.Read, Resource.Artifacts)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  async count(@Filter() filter: QueryFilterDto): Promise<CountSerializer> {
-    return CountSerializer.build(await this.provider.count(filter));
+  async count(@Filter() filter: QueryFilterDto): Promise<TotalSerializer> {
+    return TotalSerializer.build(await this.provider.count(filter));
   }
 
   @Post()
@@ -210,8 +210,8 @@ export class ArtifactsController {
     @Meta() meta: Metadata,
     @Body() update: UpdateArtifactDto,
     @Filter() filter: QueryFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
+  ): Promise<TotalSerializer> {
+    return TotalSerializer.build(
       await this.provider.updateBulk(filter, update, meta),
     );
   }

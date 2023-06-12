@@ -16,7 +16,7 @@ import {
   UsePipes,
 } from '@nestjs/common';
 import {
-  CountSerializer,
+  TotalSerializer,
   GrantSerializer,
   GrantsSerializer,
 } from '@app/common/serializers';
@@ -80,8 +80,8 @@ export class GrantsController {
   async count(
     @Meta() meta: Metadata,
     @Filter() filter: QueryFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
+  ): Promise<TotalSerializer> {
+    return TotalSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
         .count,
     );
@@ -243,8 +243,8 @@ export class GrantsController {
     @Meta() meta: Metadata,
     @Body() update: UpdateGrantDto,
     @Filter() filter: QueryFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
+  ): Promise<TotalSerializer> {
+    return TotalSerializer.build(
       (
         await lastValueFrom(
           this.provider.service.updateBulk(

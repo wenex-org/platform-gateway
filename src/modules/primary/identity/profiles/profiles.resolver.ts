@@ -15,7 +15,7 @@ import {
   UpdateInterceptor,
 } from '@app/common/interceptors';
 import {
-  CountSerializer,
+  TotalSerializer,
   ProfileSerializer,
   ProfilesSerializer,
 } from '@app/common/serializers';
@@ -54,14 +54,14 @@ import { ProfilesProvider } from './profiles.provider';
 export class ProfilesResolver {
   constructor(private readonly provider: ProfilesProvider) {}
 
-  @Query(() => CountSerializer)
+  @Query(() => TotalSerializer)
   @SetScope(Scope.ReadIdentityProfiles)
   @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
   async countProfile(
     @Meta() meta: Metadata,
     @Filter() @Args('filter') filter: QueryFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
+  ): Promise<TotalSerializer> {
+    return TotalSerializer.build(
       (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
         .count,
     );
@@ -183,7 +183,7 @@ export class ProfilesResolver {
     );
   }
 
-  @Mutation(() => CountSerializer)
+  @Mutation(() => TotalSerializer)
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentityProfiles)
@@ -192,8 +192,8 @@ export class ProfilesResolver {
     @Meta() meta: Metadata,
     @Args('update') update: UpdateProfileDto,
     @Filter() @Args('filter') filter: QueryFilterDto,
-  ): Promise<CountSerializer> {
-    return CountSerializer.build(
+  ): Promise<TotalSerializer> {
+    return TotalSerializer.build(
       (
         await lastValueFrom(
           this.provider.service.updateBulk(
