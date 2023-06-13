@@ -60,7 +60,7 @@ export class ProfilesFieldResolver extends FieldResolver {
     Object.assign(filter.query, { _id: { $in: shares } });
 
     return await lastValueFrom(
-      this.provider.service.findMany(toRaw(filter), meta).pipe(
+      this.provider.service.find(toRaw(filter), meta).pipe(
         map((res) =>
           plainToInstance(ProfilesSerializer, {
             items: perm.filter(res.items),

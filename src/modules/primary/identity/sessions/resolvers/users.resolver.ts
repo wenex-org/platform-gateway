@@ -59,7 +59,7 @@ export class UsersFieldResolver extends FieldResolver {
 
     return await lastValueFrom(
       this.provider.service
-        .findMany(toRaw(filter), meta)
+        .find(toRaw(filter), meta)
         .pipe(
           map((res) =>
             plainToInstance(UsersSerializer, { items: perm.filter(res.items) }),

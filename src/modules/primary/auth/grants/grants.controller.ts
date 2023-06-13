@@ -106,12 +106,12 @@ export class GrantsController {
   @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Read, Resource.Grants)
   @ApiQuery({ type: FilterDto, required: false })
-  async findMany(
+  async find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
   ): Promise<GrantsSerializer> {
     return GrantsSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
+      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
         .items,
     );
   }

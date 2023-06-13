@@ -107,12 +107,12 @@ export class ProfilesController {
   @SetScope(Scope.ReadIdentityProfiles)
   @ApiQuery({ type: FilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
-  async findMany(
+  async find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
   ): Promise<ProfilesSerializer> {
     return ProfilesSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
+      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
         .items,
     );
   }

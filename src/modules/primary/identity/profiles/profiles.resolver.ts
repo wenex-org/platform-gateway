@@ -90,7 +90,7 @@ export class ProfilesResolver {
     @Filter() @Args('filter') filter: FilterDto,
   ): Promise<ProfilesSerializer> {
     return ProfilesSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
+      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
         .items,
     );
   }

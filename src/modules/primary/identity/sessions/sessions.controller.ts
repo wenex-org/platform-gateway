@@ -107,12 +107,12 @@ export class SessionsController {
   @SetScope(Scope.ReadIdentitySessions)
   @ApiQuery({ type: FilterDto, required: false })
   @SetPolicy(SysAction.Read, Resource.IdentitySessions)
-  async findMany(
+  async find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
   ): Promise<SessionsSerializer> {
     return SessionsSerializer.build(
-      (await lastValueFrom(this.provider.service.findMany(toRaw(filter), meta)))
+      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
         .items,
     );
   }

@@ -20,7 +20,7 @@ export class ArtifactsProvider
         create: 'artifacts.create',
         cursor: 'artifacts.cursor',
         findOne: 'artifacts.findOne',
-        findMany: 'artifacts.findMany',
+        find: 'artifacts.find',
         findById: 'artifacts.findById',
         deleteById: 'artifacts.deleteById',
         restoreById: 'artifacts.restoreById',
@@ -37,7 +37,7 @@ export class ArtifactsProvider
     this.client.subscribeToResponseOf('artifacts.create');
     this.client.subscribeToResponseOf('artifacts.cursor');
     this.client.subscribeToResponseOf('artifacts.findOne');
-    this.client.subscribeToResponseOf('artifacts.findMany');
+    this.client.subscribeToResponseOf('artifacts.find');
     this.client.subscribeToResponseOf('artifacts.findById');
     this.client.subscribeToResponseOf('artifacts.deleteById');
     this.client.subscribeToResponseOf('artifacts.restoreById');

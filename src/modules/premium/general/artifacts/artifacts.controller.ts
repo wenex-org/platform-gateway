@@ -97,8 +97,8 @@ export class ArtifactsController {
   @UseInterceptors(FilterInterceptor)
   @SetPolicy(SysAction.Read, Resource.Artifacts)
   @ApiQuery({ type: FilterDto, required: false })
-  async findMany(@Filter() filter: FilterDto): Promise<ArtifactsSerializer> {
-    return ArtifactsSerializer.build(await this.provider.findMany(filter));
+  async find(@Filter() filter: FilterDto): Promise<ArtifactsSerializer> {
+    return ArtifactsSerializer.build(await this.provider.find(filter));
   }
 
   @Sse('sse')
