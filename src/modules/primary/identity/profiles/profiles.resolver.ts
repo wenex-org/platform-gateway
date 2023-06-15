@@ -10,8 +10,8 @@ import {
   CreateInterceptor,
   FieldInterceptor,
   FilterInterceptor,
-  MetadataTakeInterceptor,
   RateLimitInterceptor,
+  SetMetadataInterceptor,
   UpdateInterceptor,
 } from '@app/common/interceptors';
 import {
@@ -27,18 +27,22 @@ import {
   UpdateProfileDto,
 } from '@app/common/dto';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
+import {
+  assignIdToFilterQuery,
+  mapToInstance,
+  toGrpcMeta,
+  toRaw,
+} from '@app/common/utils';
 import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
 import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
-import { Resource, Scope, SysAction } from '@app/common/enums';
+import { Resource, Scope, Action } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { GraphqlInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
+import { ProfilesProvider } from '@app/common/providers';
 import { Filter, Meta } from '@app/common/decorators';
-import { toRaw } from '@app/common/utils';
-import { Metadata } from '@grpc/grpc-js';
-import { lastValueFrom } from 'rxjs';
-
-import { ProfilesProvider } from './profiles.provider';
+import { Metadata } from '@app/common/interfaces';
+import { Observable } from 'rxjs';
 
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
@@ -47,7 +51,7 @@ import { ProfilesProvider } from './profiles.provider';
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
   AuthorityInterceptor,
-  MetadataTakeInterceptor,
+  SetMetadataInterceptor,
   ClassSerializerInterceptor,
   new GraphqlInterceptor({ version: true }),
 )
@@ -56,152 +60,132 @@ export class ProfilesResolver {
 
   @Query(() => TotalSerializer)
   @SetScope(Scope.ReadIdentityProfiles)
-  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
-  async countProfile(
+  @SetPolicy(Action.Read, Resource.IdentityProfiles)
+  countProfile(
     @Meta() meta: Metadata,
     @Filter() @Args('filter') filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
-        .count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .count(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 
   @Mutation(() => ProfileSerializer)
   @UseInterceptors(CreateInterceptor)
   @SetScope(Scope.WriteIdentityProfiles)
+  @SetPolicy(Action.Create, Resource.IdentityProfiles)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Create, Resource.IdentityProfiles)
-  async createProfile(
+  createProfile(
     @Meta() meta: Metadata,
-    @Args('data', { type: () => CreateProfileDto }) data: CreateProfileDto,
-  ): Promise<ProfileSerializer> {
-    return ProfileSerializer.build(
-      await lastValueFrom(this.provider.service.create(data, meta)),
-    );
+    @Args('data') data: CreateProfileDto,
+  ): Observable<ProfileSerializer> {
+    return this.provider.service
+      .create(data, toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Query(() => ProfilesSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadIdentityProfiles)
-  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
-  async findProfiles(
+  @SetPolicy(Action.Read, Resource.IdentityProfiles)
+  findProfiles(
     @Meta() meta: Metadata,
     @Filter() @Args('filter') filter: FilterDto,
-  ): Promise<ProfilesSerializer> {
-    return ProfilesSerializer.build(
-      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
-        .items,
-    );
+  ): Observable<ProfilesSerializer> {
+    return this.provider.service
+      .find(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfilesSerializer, 'array'));
   }
 
   @Query(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadIdentityProfiles)
-  @SetPolicy(SysAction.Read, Resource.IdentityProfiles)
-  async findProfile(
+  @SetPolicy(Action.Read, Resource.IdentityProfiles)
+  findProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<ProfileSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return ProfileSerializer.build(
-      await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
-    );
+  ): Observable<ProfileSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .findById(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteIdentityProfiles)
-  @SetPolicy(SysAction.Delete, Resource.IdentityProfiles)
-  async deleteProfile(
+  @SetPolicy(Action.Delete, Resource.IdentityProfiles)
+  deleteProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<ProfileSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return ProfileSerializer.build(
-      await lastValueFrom(
-        this.provider.service.deleteById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<ProfileSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .deleteOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteIdentityProfiles)
-  @SetPolicy(SysAction.Restore, Resource.IdentityProfiles)
-  async restoreProfile(
+  @SetPolicy(Action.Restore, Resource.IdentityProfiles)
+  restoreProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<ProfileSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return ProfileSerializer.build(
-      await lastValueFrom(
-        this.provider.service.restoreById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<ProfileSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .restoreOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Mutation(() => ProfileSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ManageIdentityProfiles)
-  @SetPolicy(SysAction.Destroy, Resource.IdentityProfiles)
-  async destroyProfile(
+  @SetPolicy(Action.Destroy, Resource.IdentityProfiles)
+  destroyProfile(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Args('id', ParseMongoIdPipe) id: string,
-  ): Promise<ProfileSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return ProfileSerializer.build(
-      await lastValueFrom(
-        this.provider.service.destroyById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<ProfileSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .destroyOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Mutation(() => ProfileSerializer)
   @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.WriteIdentityProfiles)
+  @SetPolicy(Action.Update, Resource.IdentityProfiles)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
-  async updateProfile(
+  updateProfile(
     @Args('id', ParseMongoIdPipe) id: string,
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Args('update') update: UpdateProfileDto,
-  ): Promise<ProfileSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return ProfileSerializer.build(
-      await lastValueFrom(
-        this.provider.service.updateById(
-          { update, filter: toRaw(filter) },
-          meta,
-        ),
-      ),
-    );
+    @Args('data') data: UpdateProfileDto,
+  ): Observable<ProfileSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .updateOne({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(ProfileSerializer));
   }
 
   @Mutation(() => TotalSerializer)
   @UseInterceptors(FieldInterceptor)
   @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentityProfiles)
-  @SetPolicy(SysAction.Update, Resource.IdentityProfiles)
-  async updateProfiles(
+  @SetPolicy(Action.Update, Resource.IdentityProfiles)
+  updateProfiles(
     @Meta() meta: Metadata,
-    @Args('update') update: UpdateProfileDto,
+    @Args('data') data: UpdateProfileDto,
     @Filter() @Args('filter') filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (
-        await lastValueFrom(
-          this.provider.service.updateBulk(
-            { update, filter: toRaw(filter) },
-            meta,
-          ),
-        )
-      ).count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .updateBulk({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 }

@@ -1,20 +1,19 @@
 import {
-  Body,
   ClassSerializerInterceptor,
-  Controller,
-  Delete,
-  Get,
-  HttpStatus,
-  Param,
-  Patch,
-  Post,
-  Put,
-  Sse,
   UseFilters,
   UseGuards,
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
+import {
+  AuthorityInterceptor,
+  CreateInterceptor,
+  FieldInterceptor,
+  FilterInterceptor,
+  RateLimitInterceptor,
+  SetMetadataInterceptor,
+  UpdateInterceptor,
+} from '@app/common/interceptors';
 import {
   TotalSerializer,
   ArtifactSerializer,
@@ -27,123 +26,80 @@ import {
   OneFilterDto,
   UpdateArtifactDto,
 } from '@app/common/dto';
-import {
-  AuthorityInterceptor,
-  CreateInterceptor,
-  FieldInterceptor,
-  FilterInterceptor,
-  RateLimitInterceptor,
-  SetMetadataInterceptor,
-} from '@app/common/interceptors';
-import {
-  ApiBearerAuth,
-  ApiParam,
-  ApiQuery,
-  ApiResponse,
-  ApiTags,
-} from '@nestjs/swagger';
 import { assignIdToFilterQuery, mapToInstance } from '@app/common/utils';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
+import { Args, Mutation, Query, Resolver } from '@nestjs/graphql';
 import { Resource, Scope, Action } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
-import { Filter, Meta, Perm } from '@app/common/decorators';
-import { SentryInterceptor } from '@ntegral/nestjs-sentry';
+import { GraphqlInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
 import { ArtifactsProvider } from '@app/common/providers';
-import { plainToInstance } from 'class-transformer';
+import { Filter, Meta } from '@app/common/decorators';
 import { Metadata } from '@app/common/interfaces';
-import { map, Observable } from 'rxjs';
-import { Permission } from 'abacl';
+import { Observable } from 'rxjs';
 
-@ApiBearerAuth()
-@Controller('artifacts')
-@ApiTags('general', 'artifacts')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
+@Resolver(() => ArtifactSerializer)
 @UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
   AuthorityInterceptor,
   SetMetadataInterceptor,
   ClassSerializerInterceptor,
-  new SentryInterceptor({ version: true }),
+  new GraphqlInterceptor({ version: true }),
 )
-export class ArtifactsController {
+export class ArtifactsResolver {
   constructor(private readonly provider: ArtifactsProvider) {}
 
-  @Get('count')
+  @Query(() => TotalSerializer)
   @SetScope(Scope.ReadGeneralArtifacts)
   @SetPolicy(Action.Read, Resource.GeneralArtifacts)
-  @ApiQuery({ type: QueryFilterDto, required: false })
-  count(
+  countArtifact(
     @Meta() meta: Metadata,
-    @Filter() filter: QueryFilterDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Observable<TotalSerializer> {
     return this.provider
       .count(filter, { meta })
       .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 
-  @Post()
+  @Mutation(() => ArtifactSerializer)
   @UseInterceptors(CreateInterceptor)
   @SetScope(Scope.WriteGeneralArtifacts)
   @SetPolicy(Action.Create, Resource.GeneralArtifacts)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  create(
+  createArtifact(
     @Meta() meta: Metadata,
-    @Body() data: CreateArtifactDto,
+    @Args('data') data: CreateArtifactDto,
   ): Observable<ArtifactSerializer> {
     return this.provider
       .create(data, { meta })
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Get()
+  @Query(() => ArtifactsSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadGeneralArtifacts)
-  @ApiQuery({ type: FilterDto, required: false })
   @SetPolicy(Action.Read, Resource.GeneralArtifacts)
-  find(
+  findArtifacts(
     @Meta() meta: Metadata,
-    @Filter() filter: FilterDto,
+    @Filter() @Args('filter') filter: FilterDto,
   ): Observable<ArtifactsSerializer> {
     return this.provider
       .find(filter, { meta })
       .pipe(mapToInstance(ArtifactsSerializer, 'array'));
   }
 
-  @Sse('sse')
-  @SetScope(Scope.ReadGeneralArtifacts)
-  @SetPolicy(Action.Read, Resource.GeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
-  @ApiResponse({ type: ArtifactSerializer, status: HttpStatus.OK })
-  cursor(
-    @Meta() meta: Metadata,
-    @Perm() perm: Permission,
-    @Filter() filter: OneFilterDto,
-  ): Observable<MessageEvent> {
-    return this.provider.cursor(filter, { meta }).pipe(
-      map(
-        (data) =>
-          ({
-            id: data.value.id,
-            data: perm.filter(plainToInstance(ArtifactSerializer, data.value)),
-          } as unknown as MessageEvent),
-      ),
-    );
-  }
-
-  @Get(':id')
+  @Query(() => ArtifactSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadGeneralArtifacts)
   @SetPolicy(Action.Read, Resource.GeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
-  @ApiParam({ type: String, name: 'id', required: true })
-  findOne(
+  findArtifact(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Param('id', ParseMongoIdPipe) id: string,
+    @Args('id', ParseMongoIdPipe) id: string,
   ): Observable<ArtifactSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider
@@ -151,16 +107,14 @@ export class ArtifactsController {
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Delete(':id')
+  @Mutation(() => ArtifactSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteGeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(Action.Delete, Resource.GeneralArtifacts)
-  @ApiParam({ type: String, name: 'id', required: true })
-  deleteOne(
+  deleteArtifact(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Param('id', ParseMongoIdPipe) id: string,
+    @Args('id', ParseMongoIdPipe) id: string,
   ): Observable<ArtifactSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider
@@ -168,16 +122,14 @@ export class ArtifactsController {
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Put(':id/restore')
+  @Mutation(() => ArtifactSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteGeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(Action.Restore, Resource.GeneralArtifacts)
-  @ApiParam({ type: String, name: 'id', required: true })
-  restoreOne(
+  restoreArtifact(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Param('id', ParseMongoIdPipe) id: string,
+    @Args('id', ParseMongoIdPipe) id: string,
   ): Observable<ArtifactSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider
@@ -185,16 +137,14 @@ export class ArtifactsController {
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Delete(':id/destroy')
+  @Mutation(() => ArtifactSerializer)
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ManageGeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(Action.Destroy, Resource.GeneralArtifacts)
-  @ApiParam({ type: String, name: 'id', required: true })
-  destroyOne(
+  destroyArtifact(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
-    @Param('id', ParseMongoIdPipe) id: string,
+    @Args('id', ParseMongoIdPipe) id: string,
   ): Observable<ArtifactSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider
@@ -202,17 +152,16 @@ export class ArtifactsController {
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Patch(':id')
+  @Mutation(() => ArtifactSerializer)
+  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.WriteGeneralArtifacts)
-  @ApiQuery({ type: OneFilterDto, required: false })
   @SetPolicy(Action.Update, Resource.GeneralArtifacts)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @ApiParam({ type: String, name: 'id', required: true })
-  updateOne(
+  updateArtifact(
+    @Args('id', ParseMongoIdPipe) id: string,
     @Meta() meta: Metadata,
-    @Body() data: UpdateArtifactDto,
     @Filter() filter: OneFilterDto,
-    @Param('id', ParseMongoIdPipe) id: string,
+    @Args('data') data: UpdateArtifactDto,
   ): Observable<ArtifactSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider
@@ -220,15 +169,15 @@ export class ArtifactsController {
       .pipe(mapToInstance(ArtifactSerializer));
   }
 
-  @Patch('bulk')
+  @Mutation(() => TotalSerializer)
   @UseInterceptors(FieldInterceptor)
+  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageGeneralArtifacts)
   @SetPolicy(Action.Update, Resource.GeneralArtifacts)
-  @ApiQuery({ type: QueryFilterDto, required: false })
-  updateBulk(
+  updateArtifacts(
     @Meta() meta: Metadata,
-    @Body() data: UpdateArtifactDto,
-    @Filter() filter: QueryFilterDto,
+    @Args('data') data: UpdateArtifactDto,
+    @Filter() @Args('filter') filter: QueryFilterDto,
   ): Observable<TotalSerializer> {
     return this.provider
       .updateBulk(data, filter, { meta })

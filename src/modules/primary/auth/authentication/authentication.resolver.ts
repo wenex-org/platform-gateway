@@ -1,8 +1,9 @@
 import {
-  Body,
+  RateLimitInterceptor,
+  SetMetadataInterceptor,
+} from '@app/common/interceptors';
+import {
   ClassSerializerInterceptor,
-  Controller,
-  Post,
   UseFilters,
   UseGuards,
   UseInterceptors,
@@ -13,67 +14,60 @@ import {
   JwtTokenSerializer,
   ResultSerializer,
 } from '@app/common/serializers';
-import {
-  SetMetadataInterceptor,
-  RateLimitInterceptor,
-} from '@app/common/interceptors';
 import { AuthenticationProvider } from '@app/common/providers';
 import { AuthenticationDto, TokenDto } from '@app/common/dto';
 import { mapToInstance, toGrpcMeta } from '@app/common/utils';
+import { GraphqlInterceptor } from '@ntegral/nestjs-sentry';
 import { AuthGuard, ScopeGuard } from '@app/common/guards';
 import { IsPublic, SetScope } from '@app/common/metadatas';
-import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Filter, Meta } from '@app/common/decorators';
 import { ValidationPipe } from '@app/common/pipes';
 import { Metadata } from '@app/common/interfaces';
-import { Meta } from '@app/common/decorators';
 import { Scope } from '@app/common/enums';
 import { Observable } from 'rxjs';
 
-@Controller('auth')
-@ApiTags('auth', 'authentication')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)
+@UseInterceptors(RateLimitInterceptor)
+@Resolver(() => AuthenticationSerializer)
 @UseInterceptors(
-  RateLimitInterceptor,
   SetMetadataInterceptor,
   ClassSerializerInterceptor,
-  new SentryInterceptor({ version: true }),
+  new GraphqlInterceptor({ version: true }),
 )
-export class AuthenticationController {
+export class AuthenticationResolver {
   constructor(private readonly provider: AuthenticationProvider) {}
 
   @IsPublic()
-  @Post('token')
-  token(
+  @Query(() => AuthenticationSerializer)
+  authToken(
     @Meta() meta: Metadata,
-    @Body() data: AuthenticationDto,
+    @Filter() @Args('data') data: AuthenticationDto,
   ): Observable<AuthenticationSerializer> {
     return this.provider.service
       .token(data, toGrpcMeta(meta))
       .pipe(mapToInstance(AuthenticationSerializer));
   }
 
-  @Post('decrypt')
-  @ApiBearerAuth()
   @SetScope(Scope.ManageAuth)
-  decrypt(
+  @Query(() => JwtTokenSerializer)
+  authDecrypt(
     @Meta() meta: Metadata,
-    @Body() data: TokenDto,
+    @Filter() @Args('data') data: TokenDto,
   ): Observable<JwtTokenSerializer> {
     return this.provider.service
       .decrypt(data, toGrpcMeta(meta))
       .pipe(mapToInstance(JwtTokenSerializer));
   }
 
-  @Post('logout')
-  @ApiBearerAuth()
   @SetScope(Scope.ManageAuth)
-  logout(
+  @Query(() => ResultSerializer)
+  authLogout(
     @Meta() meta: Metadata,
-    @Body() data: TokenDto,
+    @Filter() @Args('data') data: TokenDto,
   ): Observable<ResultSerializer> {
     return this.provider.service
       .logout(data, toGrpcMeta(meta))

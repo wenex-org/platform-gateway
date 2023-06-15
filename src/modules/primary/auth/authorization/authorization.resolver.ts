@@ -1,52 +1,47 @@
 import {
-  Body,
+  RateLimitInterceptor,
+  SetMetadataInterceptor,
+} from '@app/common/interceptors';
+import {
   ClassSerializerInterceptor,
-  Controller,
-  Post,
   UseFilters,
   UseGuards,
   UseInterceptors,
   UsePipes,
 } from '@nestjs/common';
-import {
-  SetMetadataInterceptor,
-  RateLimitInterceptor,
-} from '@app/common/interceptors';
 import { AuthorizationSerializer } from '@app/common/serializers';
-import { mapToInstance, toGrpcMeta } from '@app/common/utils';
 import { AuthorizationProvider } from '@app/common/providers';
+import { mapToInstance, toGrpcMeta } from '@app/common/utils';
+import { GraphqlInterceptor } from '@ntegral/nestjs-sentry';
 import { AuthGuard, ScopeGuard } from '@app/common/guards';
-import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { ApiBearerAuth, ApiTags } from '@nestjs/swagger';
+import { Args, Query, Resolver } from '@nestjs/graphql';
+import { Filter, Meta } from '@app/common/decorators';
 import { AuthorizationDto } from '@app/common/dto';
 import { ValidationPipe } from '@app/common/pipes';
 import { Metadata } from '@app/common/interfaces';
 import { SetScope } from '@app/common/metadatas';
-import { Meta } from '@app/common/decorators';
 import { Scope } from '@app/common/enums';
 import { Observable } from 'rxjs';
 
-@ApiBearerAuth()
-@ApiTags('auth')
-@Controller('auth')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)
+@UseInterceptors(RateLimitInterceptor)
+@Resolver(() => AuthorizationSerializer)
 @UseInterceptors(
-  RateLimitInterceptor,
   SetMetadataInterceptor,
   ClassSerializerInterceptor,
-  new SentryInterceptor({ version: true }),
+  new GraphqlInterceptor({ version: true }),
 )
-export class AuthorizationController {
+export class AuthorizationResolver {
   constructor(private readonly provider: AuthorizationProvider) {}
 
-  @Post('can')
   @SetScope(Scope.ManageAuth)
+  @Query(() => AuthorizationSerializer)
   can(
     @Meta() meta: Metadata,
-    @Body() data: AuthorizationDto,
+    @Filter() @Args('data') data: AuthorizationDto,
   ): Observable<AuthorizationSerializer> {
     return this.provider.service
       .can(data, toGrpcMeta(meta))

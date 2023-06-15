@@ -32,8 +32,8 @@ import {
   CreateInterceptor,
   FieldInterceptor,
   FilterInterceptor,
-  MetadataTakeInterceptor,
   RateLimitInterceptor,
+  SetMetadataInterceptor,
 } from '@app/common/interceptors';
 import {
   ApiBearerAuth,
@@ -42,31 +42,35 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  assignIdToFilterQuery,
+  mapToInstance,
+  toGrpcMeta,
+  toRaw,
+} from '@app/common/utils';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
-import { Resource, Scope, SysAction } from '@app/common/enums';
+import { Resource, Scope, Action } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { lastValueFrom, map, Observable } from 'rxjs';
+import { GrantsProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
-import { toRaw } from '@app/common/utils';
-import { Metadata } from '@grpc/grpc-js';
+import { Metadata } from '@app/common/interfaces';
+import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
-import { GrantsProvider } from './grants.provider';
-
 @ApiBearerAuth()
-@ApiTags('grants')
 @Controller('grants')
+@ApiTags('auth', 'grants')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
   AuthorityInterceptor,
-  MetadataTakeInterceptor,
+  SetMetadataInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
@@ -74,59 +78,57 @@ export class GrantsController {
   constructor(private readonly provider: GrantsProvider) {}
 
   @Get('count')
-  @SetScope(Scope.ReadGrants)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetScope(Scope.ReadAuthGrants)
+  @SetPolicy(Action.Read, Resource.AuthGrants)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  async count(
+  count(
     @Meta() meta: Metadata,
     @Filter() filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
-        .count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .count(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 
   @Post()
-  @SetScope(Scope.WriteGrants)
+  @SetScope(Scope.WriteAuthGrants)
   @UseInterceptors(CreateInterceptor)
-  @SetPolicy(SysAction.Create, Resource.Grants)
+  @SetPolicy(Action.Create, Resource.AuthGrants)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  async create(
+  create(
     @Meta() meta: Metadata,
     @Body() data: CreateGrantDto,
-  ): Promise<GrantSerializer> {
-    return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.create(data, meta)),
-    );
+  ): Observable<GrantSerializer> {
+    return this.provider.service
+      .create(data, toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Get()
-  @SetScope(Scope.ReadGrants)
+  @SetScope(Scope.ReadAuthGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetPolicy(Action.Read, Resource.AuthGrants)
   @ApiQuery({ type: FilterDto, required: false })
-  async find(
+  find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Promise<GrantsSerializer> {
-    return GrantsSerializer.build(
-      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
-        .items,
-    );
+  ): Observable<GrantsSerializer> {
+    return this.provider.service
+      .find(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantsSerializer, 'array'));
   }
 
   @Sse('sse')
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetScope(Scope.ReadAuthGrants)
+  @SetPolicy(Action.Read, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentitySessions)
   @ApiResponse({ type: GrantSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
     @Filter() filter: OneFilterDto,
   ): Observable<MessageEvent> {
-    return this.provider.service.cursor(toRaw(filter), meta).pipe(
+    return this.provider.service.cursor(toRaw(filter), toGrpcMeta(meta)).pipe(
       map(
         (data) =>
           ({
@@ -138,121 +140,103 @@ export class GrantsController {
   }
 
   @Get(':id')
-  @SetScope(Scope.ReadGrants)
+  @SetScope(Scope.ReadAuthGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Read, Resource.Grants)
+  @SetPolicy(Action.Read, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  async findById(
+  findOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
-      await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
-    );
+  ): Observable<GrantSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .findOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Delete(':id')
-  @SetScope(Scope.WriteGrants)
+  @SetScope(Scope.WriteAuthGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Delete, Resource.Grants)
+  @SetPolicy(Action.Delete, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  async deleteById(
+  deleteOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
-      await lastValueFrom(
-        this.provider.service.deleteById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<GrantSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .deleteOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Put(':id/restore')
-  @SetScope(Scope.WriteGrants)
+  @SetScope(Scope.WriteAuthGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Restore, Resource.Grants)
+  @SetPolicy(Action.Restore, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  async restoreById(
+  restoreOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
-      await lastValueFrom(
-        this.provider.service.restoreById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<GrantSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .restoreOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Delete(':id/destroy')
-  @SetScope(Scope.ManageGrants)
+  @SetScope(Scope.ManageAuthGrants)
   @UseInterceptors(FilterInterceptor)
-  @SetPolicy(SysAction.Destroy, Resource.Grants)
+  @SetPolicy(Action.Destroy, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
   @ApiParam({ type: String, name: 'id', required: true })
-  async destroyById(
+  destroyOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
-      await lastValueFrom(
-        this.provider.service.destroyById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<GrantSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .destroyOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Patch(':id')
-  @SetScope(Scope.WriteGrants)
-  @SetPolicy(SysAction.Update, Resource.Grants)
+  @SetScope(Scope.WriteAuthGrants)
+  @SetPolicy(Action.Update, Resource.AuthGrants)
   @ApiQuery({ type: OneFilterDto, required: false })
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
-  async updateById(
+  updateOne(
     @Meta() meta: Metadata,
-    @Body() update: UpdateGrantDto,
+    @Body() data: UpdateGrantDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<GrantSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return GrantSerializer.build(
-      await lastValueFrom(
-        this.provider.service.updateById(
-          { update, filter: toRaw(filter) },
-          meta,
-        ),
-      ),
-    );
+  ): Observable<GrantSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .updateOne({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(GrantSerializer));
   }
 
   @Patch('bulk')
-  @SetScope(Scope.ManageGrants)
+  @SetScope(Scope.ManageAuthGrants)
   @UseInterceptors(FieldInterceptor)
-  @SetPolicy(SysAction.Update, Resource.Grants)
+  @SetPolicy(Action.Update, Resource.AuthGrants)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  async updateBulk(
+  updateBulk(
     @Meta() meta: Metadata,
-    @Body() update: UpdateGrantDto,
+    @Body() data: UpdateGrantDto,
     @Filter() filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (
-        await lastValueFrom(
-          this.provider.service.updateBulk(
-            { update, filter: toRaw(filter) },
-            meta,
-          ),
-        )
-      ).count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .updateBulk({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 }

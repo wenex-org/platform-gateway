@@ -1,4 +1,4 @@
-import { NODE_ENV, REDIS_OPTIONS, SENTRY_DSN } from '@app/common/configs';
+import { NODE_ENV, REDIS_CONFIG, SENTRY_DSN } from '@app/common/configs';
 import { AuthorizationProvider } from '@app/common/providers';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
@@ -6,12 +6,13 @@ import { Global, Module } from '@nestjs/common';
 import { RedisModule } from '@app/redis';
 
 import { AuthorizationController } from './authorization.controller';
+import { AuthorizationResolver } from './authorization.resolver';
 import { clientsModuleOptions } from './authorization.const';
 
 @Global()
 @Module({
   imports: [
-    RedisModule.register(REDIS_OPTIONS()),
+    RedisModule.register(REDIS_CONFIG()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
       debug: NODE_ENV().IS_DEVELOPMENT,
@@ -24,7 +25,6 @@ import { clientsModuleOptions } from './authorization.const';
     }),
   ],
   controllers: [AuthorizationController],
-  providers: [AuthorizationProvider],
-  exports: [AuthorizationProvider],
+  providers: [AuthorizationProvider, AuthorizationResolver],
 })
 export class AuthorizationModule {}

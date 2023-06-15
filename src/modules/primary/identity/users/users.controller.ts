@@ -32,9 +32,8 @@ import {
   CreateInterceptor,
   FieldInterceptor,
   FilterInterceptor,
-  MetadataTakeInterceptor,
   RateLimitInterceptor,
-  UpdateInterceptor,
+  SetMetadataInterceptor,
 } from '@app/common/interceptors';
 import {
   ApiBearerAuth,
@@ -43,31 +42,35 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import {
+  assignIdToFilterQuery,
+  mapToInstance,
+  toGrpcMeta,
+  toRaw,
+} from '@app/common/utils';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
 import { ParseMongoIdPipe, ValidationPipe } from '@app/common/pipes';
-import { Resource, Scope, SysAction } from '@app/common/enums';
+import { Resource, Scope, Action } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { Observable, lastValueFrom, map } from 'rxjs';
+import { UsersProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
-import { toRaw } from '@app/common/utils';
-import { Metadata } from '@grpc/grpc-js';
+import { Metadata } from '@app/common/interfaces';
+import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
-import { UsersProvider } from './users.provider';
-
 @ApiBearerAuth()
-@ApiTags('identity')
 @Controller('users')
+@ApiTags('identity', 'users')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
   AuthorityInterceptor,
-  MetadataTakeInterceptor,
+  SetMetadataInterceptor,
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
@@ -76,63 +79,61 @@ export class UsersController {
 
   @Get('count')
   @SetScope(Scope.ReadIdentityUsers)
+  @SetPolicy(Action.Read, Resource.IdentityUsers)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
-  async count(
+  count(
     @Meta() meta: Metadata,
     @Filter() filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (await lastValueFrom(this.provider.service.count(toRaw(filter), meta)))
-        .count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .count(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 
   @Post()
   @UseInterceptors(CreateInterceptor)
   @SetScope(Scope.WriteIdentityUsers)
+  @SetPolicy(Action.Create, Resource.IdentityUsers)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
-  @SetPolicy(SysAction.Create, Resource.IdentityUsers)
-  async create(
+  create(
     @Meta() meta: Metadata,
     @Body() data: CreateUserDto,
-  ): Promise<UserSerializer> {
-    return UserSerializer.build(
-      await lastValueFrom(this.provider.service.create(data, meta)),
-    );
+  ): Observable<UserSerializer> {
+    return this.provider.service
+      .create(data, toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Get()
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadIdentityUsers)
   @ApiQuery({ type: FilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
-  async find(
+  @SetPolicy(Action.Read, Resource.IdentityUsers)
+  find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Promise<UsersSerializer> {
-    return UsersSerializer.build(
-      (await lastValueFrom(this.provider.service.find(toRaw(filter), meta)))
-        .items,
-    );
+  ): Observable<UsersSerializer> {
+    return this.provider.service
+      .find(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(UsersSerializer, 'array'));
   }
 
   @Sse('sse')
   @SetScope(Scope.ReadIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
+  @SetPolicy(Action.Read, Resource.IdentityUsers)
   @ApiResponse({ type: UserSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
     @Filter() filter: OneFilterDto,
   ): Observable<MessageEvent> {
-    return this.provider.service.cursor(toRaw(filter), meta).pipe(
+    return this.provider.service.cursor(toRaw(filter), toGrpcMeta(meta)).pipe(
       map(
         (data) =>
           ({
             id: data.id,
-            data: plainToInstance(UserSerializer, perm.filter(data)),
+            data: perm.filter(plainToInstance(UserSerializer, data)),
           } as unknown as MessageEvent),
       ),
     );
@@ -142,120 +143,100 @@ export class UsersController {
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ReadIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(SysAction.Read, Resource.IdentityUsers)
+  @SetPolicy(Action.Read, Resource.IdentityUsers)
   @ApiParam({ type: String, name: 'id', required: true })
-  async findById(
+  findOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
-      await lastValueFrom(this.provider.service.findById(toRaw(filter), meta)),
-    );
+  ): Observable<UserSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .findOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Delete(':id')
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
+  @SetPolicy(Action.Delete, Resource.IdentityUsers)
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Delete, Resource.IdentityUsers)
-  async deleteById(
+  deleteOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
-      await lastValueFrom(
-        this.provider.service.deleteById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<UserSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .deleteOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Put(':id/restore')
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.WriteIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
+  @SetPolicy(Action.Restore, Resource.IdentityUsers)
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Restore, Resource.IdentityUsers)
-  async restoreById(
+  restoreOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
-      await lastValueFrom(
-        this.provider.service.restoreById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<UserSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .restoreOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Delete(':id/destroy')
   @UseInterceptors(FilterInterceptor)
   @SetScope(Scope.ManageIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
+  @SetPolicy(Action.Destroy, Resource.IdentityUsers)
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Destroy, Resource.IdentityUsers)
-  async destroyById(
+  destroyOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
-      await lastValueFrom(
-        this.provider.service.destroyById(toRaw(filter), meta),
-      ),
-    );
+  ): Observable<UserSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .destroyOne(toRaw(filter), toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Patch(':id')
-  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.WriteIdentityUsers)
   @ApiQuery({ type: OneFilterDto, required: false })
+  @SetPolicy(Action.Update, Resource.IdentityUsers)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
-  @SetPolicy(SysAction.Update, Resource.IdentityUsers)
-  async updateById(
+  updateOne(
     @Meta() meta: Metadata,
-    @Body() update: UpdateUserDto,
+    @Body() data: UpdateUserDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Promise<UserSerializer> {
-    Object.assign(filter.query, { _id: id });
-    return UserSerializer.build(
-      await lastValueFrom(
-        this.provider.service.updateById(
-          { update, filter: toRaw(filter) },
-          meta,
-        ),
-      ),
-    );
+  ): Observable<UserSerializer> {
+    assignIdToFilterQuery(filter, id);
+    return this.provider.service
+      .updateOne({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(UserSerializer));
   }
 
   @Patch('bulk')
   @UseInterceptors(FieldInterceptor)
-  @UseInterceptors(UpdateInterceptor)
   @SetScope(Scope.ManageIdentityUsers)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  @SetPolicy(SysAction.Update, Resource.IdentityUsers)
-  async updateBulk(
+  @SetPolicy(Action.Update, Resource.IdentityUsers)
+  updateBulk(
     @Meta() meta: Metadata,
-    @Body() update: UpdateUserDto,
+    @Body() data: UpdateUserDto,
     @Filter() filter: QueryFilterDto,
-  ): Promise<TotalSerializer> {
-    return TotalSerializer.build(
-      (
-        await lastValueFrom(
-          this.provider.service.updateBulk(
-            { update, filter: toRaw(filter) },
-            meta,
-          ),
-        )
-      ).count,
-    );
+  ): Observable<TotalSerializer> {
+    return this.provider.service
+      .updateBulk({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
+      .pipe(mapToInstance(TotalSerializer, 'total'));
   }
 }

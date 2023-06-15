@@ -1,20 +1,17 @@
-import { NODE_ENV, REDIS_OPTIONS, SENTRY_DSN } from '@app/common/configs';
+import { NODE_ENV, REDIS_CONFIG, SENTRY_DSN } from '@app/common/configs';
+import { SessionsProvider } from '@app/common/providers';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
-import { clientsModuleOptions } from './sessions.const';
 import { SessionsController } from './sessions.controller';
-import { SessionsProvider } from './sessions.provider';
+import { clientsModuleOptions } from './sessions.const';
 import { SessionsResolver } from './sessions.resolver';
-import { UsersFieldResolver } from './resolvers';
-import { UsersModule } from '../users';
 
 @Module({
   imports: [
-    UsersModule,
-    RedisModule.register(REDIS_OPTIONS()),
+    RedisModule.register(REDIS_CONFIG()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
       debug: NODE_ENV().IS_DEVELOPMENT,
@@ -27,7 +24,6 @@ import { UsersModule } from '../users';
     }),
   ],
   controllers: [SessionsController],
-  providers: [SessionsProvider, SessionsResolver, UsersFieldResolver],
-  exports: [SessionsProvider],
+  providers: [SessionsProvider, SessionsResolver],
 })
 export class SessionsModule {}

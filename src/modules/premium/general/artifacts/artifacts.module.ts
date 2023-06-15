@@ -1,4 +1,5 @@
-import { NODE_ENV, REDIS_OPTIONS, SENTRY_DSN } from '@app/common/configs';
+import { NODE_ENV, REDIS_CONFIG, SENTRY_DSN } from '@app/common/configs';
+import { ArtifactsProvider } from '@app/common/providers';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
@@ -6,11 +7,11 @@ import { Module } from '@nestjs/common';
 
 import { ArtifactsController } from './artifacts.controller';
 import { clientsModuleOptions } from './artifacts.const';
-import { ArtifactsProvider } from './artifacts.provider';
+import { ArtifactsResolver } from './artifacts.resolver';
 
 @Module({
   imports: [
-    RedisModule.register(REDIS_OPTIONS()),
+    RedisModule.register(REDIS_CONFIG()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({
       debug: NODE_ENV().IS_DEVELOPMENT,
@@ -23,6 +24,6 @@ import { ArtifactsProvider } from './artifacts.provider';
     }),
   ],
   controllers: [ArtifactsController],
-  providers: [ArtifactsProvider],
+  providers: [ArtifactsProvider, ArtifactsResolver],
 })
 export class ArtifactsModule {}
