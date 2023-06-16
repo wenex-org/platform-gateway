@@ -1,12 +1,12 @@
 import { NODE_ENV, REDIS_CONFIG, SENTRY_DSN } from '@app/common/configs';
+import { ProfilesProvider } from '@app/common/providers';
 import { ClientsModule } from '@nestjs/microservices';
 import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
-import { clientsModuleOptions } from './profiles.const';
 import { ProfilesController } from './profiles.controller';
-import { ProfilesProvider } from '../../../../../../../libs/common/src/providers/primary/identity/profiles.provider';
+import { clientsModuleOptions } from './profiles.const';
 import { ProfilesResolver } from './profiles.resolver';
 
 @Module({
@@ -25,6 +25,5 @@ import { ProfilesResolver } from './profiles.resolver';
   ],
   controllers: [ProfilesController],
   providers: [ProfilesProvider, ProfilesResolver],
-  exports: [ProfilesProvider],
 })
 export class ProfilesModule {}
