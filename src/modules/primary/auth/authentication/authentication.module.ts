@@ -26,5 +26,6 @@ import { clientsModuleOptions } from './authentication.const';
   ],
   controllers: [AuthenticationController],
   providers: [AuthenticationProvider, AuthenticationResolver],
+  exports: [AuthenticationProvider],
 })
 export class AuthenticationModule {}

@@ -8,7 +8,7 @@ const {
 
 export const clientsModuleOptions: ClientsModuleOptions = [
   {
-    // User Service
+    // Users Service
     name: USERS.PACKAGE.SYMBOL,
     transport: Transport.GRPC,
     options: {

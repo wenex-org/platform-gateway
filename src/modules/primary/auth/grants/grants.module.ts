@@ -5,12 +5,16 @@ import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
+import { AuthenticationModule } from '../authentication';
+import { AuthorizationModule } from '../authorization';
 import { GrantsController } from './grants.controller';
 import { clientsModuleOptions } from './grants.const';
 import { GrantsResolver } from './grants.resolver';
 
 @Module({
   imports: [
+    AuthorizationModule,
+    AuthenticationModule,
     RedisModule.register(REDIS_CONFIG()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({

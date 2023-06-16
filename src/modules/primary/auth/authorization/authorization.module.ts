@@ -26,5 +26,6 @@ import { clientsModuleOptions } from './authorization.const';
   ],
   controllers: [AuthorizationController],
   providers: [AuthorizationProvider, AuthorizationResolver],
+  exports: [AuthorizationProvider],
 })
 export class AuthorizationModule {}

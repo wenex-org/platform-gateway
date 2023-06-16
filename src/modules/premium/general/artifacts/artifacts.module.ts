@@ -5,12 +5,15 @@ import { SentryModule } from '@ntegral/nestjs-sentry';
 import { RedisModule } from '@app/redis';
 import { Module } from '@nestjs/common';
 
+import { AuthenticationModule, AuthorizationModule } from '../../../primary';
 import { ArtifactsController } from './artifacts.controller';
 import { clientsModuleOptions } from './artifacts.const';
 import { ArtifactsResolver } from './artifacts.resolver';
 
 @Module({
   imports: [
+    AuthorizationModule,
+    AuthenticationModule,
     RedisModule.register(REDIS_CONFIG()),
     ClientsModule.register(clientsModuleOptions),
     SentryModule.forRoot({

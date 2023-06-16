@@ -8,7 +8,7 @@ const {
 
 export const clientsModuleOptions: ClientsModuleOptions = [
   {
-    // Authorization Service
+    // Sessions Service
     name: SESSIONS.PACKAGE.SYMBOL,
     transport: Transport.GRPC,
     options: {

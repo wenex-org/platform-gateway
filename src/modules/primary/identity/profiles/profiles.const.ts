@@ -8,7 +8,7 @@ const {
 
 export const clientsModuleOptions: ClientsModuleOptions = [
   {
-    // Profile Service
+    // Profiles Service
     name: PROFILES.PACKAGE.SYMBOL,
     transport: Transport.GRPC,
     options: {
