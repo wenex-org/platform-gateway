@@ -31,8 +31,8 @@ import { Meta } from '@app/common/decorators';
 import { Scope } from '@app/common/enums';
 import { Observable } from 'rxjs';
 
+@ApiTags('auth')
 @Controller('auth')
-@ApiTags('auth', 'authentication')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)

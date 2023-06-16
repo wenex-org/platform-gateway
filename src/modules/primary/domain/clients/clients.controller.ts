@@ -17,15 +17,15 @@ import {
 } from '@nestjs/common';
 import {
   TotalSerializer,
-  SessionSerializer,
-  SessionsSerializer,
+  ClientSerializer,
+  ClientsSerializer,
 } from '@app/common/serializers';
 import {
   QueryFilterDto,
-  CreateSessionDto,
+  CreateClientDto,
   FilterDto,
   OneFilterDto,
-  UpdateSessionDto,
+  UpdateClientDto,
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
@@ -55,15 +55,15 @@ import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { SessionsProvider } from '@app/common/providers';
+import { ClientsProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
 import { Metadata } from '@app/common/interfaces';
 import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
 @ApiBearerAuth()
-@ApiTags('sessions')
-@Controller('sessions')
+@ApiTags('clients')
+@Controller('clients')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
@@ -74,12 +74,12 @@ import { Permission } from 'abacl';
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
-export class SessionsController {
-  constructor(private readonly provider: SessionsProvider) {}
+export class ClientsController {
+  constructor(private readonly provider: ClientsProvider) {}
 
   @Get('count')
-  @SetScope(Scope.ReadIdentitySessions)
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
+  @SetScope(Scope.ReadDomainClients)
+  @SetPolicy(Action.Read, Resource.DomainClients)
   @ApiQuery({ type: QueryFilterDto, required: false })
   count(
     @Meta() meta: Metadata,
@@ -92,37 +92,37 @@ export class SessionsController {
 
   @Post()
   @UseInterceptors(CreateInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
-  @SetPolicy(Action.Create, Resource.IdentitySessions)
+  @SetScope(Scope.WriteDomainClients)
+  @SetPolicy(Action.Create, Resource.DomainClients)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   create(
     @Meta() meta: Metadata,
-    @Body() data: CreateSessionDto,
-  ): Observable<SessionSerializer> {
+    @Body() data: CreateClientDto,
+  ): Observable<ClientSerializer> {
     return this.provider.service
       .create(data, toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Get()
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetScope(Scope.ReadDomainClients)
   @ApiQuery({ type: FilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
+  @SetPolicy(Action.Read, Resource.DomainClients)
   find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Observable<SessionsSerializer> {
+  ): Observable<ClientsSerializer> {
     return this.provider.service
       .find(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionsSerializer, 'array'));
+      .pipe(mapToInstance(ClientsSerializer, 'array'));
   }
 
   @Sse('sse')
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetScope(Scope.ReadDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
-  @ApiResponse({ type: SessionSerializer, status: HttpStatus.OK })
+  @SetPolicy(Action.Read, Resource.DomainClients)
+  @ApiResponse({ type: ClientSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
@@ -133,7 +133,7 @@ export class SessionsController {
         (data) =>
           ({
             id: data.id,
-            data: perm.filter(plainToInstance(SessionSerializer, data)),
+            data: perm.filter(plainToInstance(ClientSerializer, data)),
           } as unknown as MessageEvent),
       ),
     );
@@ -141,98 +141,98 @@ export class SessionsController {
 
   @Get(':id')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetScope(Scope.ReadDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
+  @SetPolicy(Action.Read, Resource.DomainClients)
   @ApiParam({ type: String, name: 'id', required: true })
   findOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ClientSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .findOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Delete(':id')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Delete, Resource.IdentitySessions)
+  @SetPolicy(Action.Delete, Resource.DomainClients)
   @ApiParam({ type: String, name: 'id', required: true })
   deleteOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ClientSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .deleteOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Put(':id/restore')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Restore, Resource.IdentitySessions)
+  @SetPolicy(Action.Restore, Resource.DomainClients)
   @ApiParam({ type: String, name: 'id', required: true })
   restoreOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ClientSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .restoreOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Delete(':id/destroy')
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
+  @SetScope(Scope.ManageDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Destroy, Resource.IdentitySessions)
+  @SetPolicy(Action.Destroy, Resource.DomainClients)
   @ApiParam({ type: String, name: 'id', required: true })
   destroyOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ClientSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .destroyOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Patch(':id')
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteDomainClients)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Update, Resource.IdentitySessions)
+  @SetPolicy(Action.Update, Resource.DomainClients)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
   updateOne(
     @Meta() meta: Metadata,
-    @Body() data: UpdateSessionDto,
+    @Body() data: UpdateClientDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ClientSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .updateOne({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ClientSerializer));
   }
 
   @Patch('bulk')
   @UseInterceptors(FieldInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
+  @SetScope(Scope.ManageDomainClients)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  @SetPolicy(Action.Update, Resource.IdentitySessions)
+  @SetPolicy(Action.Update, Resource.DomainClients)
   updateBulk(
     @Meta() meta: Metadata,
-    @Body() data: UpdateSessionDto,
+    @Body() data: UpdateClientDto,
     @Filter() filter: QueryFilterDto,
   ): Observable<TotalSerializer> {
     return this.provider.service

@@ -17,15 +17,15 @@ import {
 } from '@nestjs/common';
 import {
   TotalSerializer,
-  SessionSerializer,
-  SessionsSerializer,
+  ConfigSerializer,
+  ConfigsSerializer,
 } from '@app/common/serializers';
 import {
   QueryFilterDto,
-  CreateSessionDto,
+  CreateConfigDto,
   FilterDto,
   OneFilterDto,
-  UpdateSessionDto,
+  UpdateConfigDto,
 } from '@app/common/dto';
 import {
   AuthorityInterceptor,
@@ -55,15 +55,15 @@ import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
 import { SentryInterceptor } from '@ntegral/nestjs-sentry';
 import { AllExceptionsFilter } from '@app/common/filters';
-import { SessionsProvider } from '@app/common/providers';
+import { ConfigsProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
 import { Metadata } from '@app/common/interfaces';
 import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
 @ApiBearerAuth()
-@ApiTags('sessions')
-@Controller('sessions')
+@ApiTags('configs')
+@Controller('configs')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
@@ -74,12 +74,12 @@ import { Permission } from 'abacl';
   ClassSerializerInterceptor,
   new SentryInterceptor({ version: true }),
 )
-export class SessionsController {
-  constructor(private readonly provider: SessionsProvider) {}
+export class ConfigsController {
+  constructor(private readonly provider: ConfigsProvider) {}
 
   @Get('count')
-  @SetScope(Scope.ReadIdentitySessions)
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
+  @SetScope(Scope.ReadConfigs)
+  @SetPolicy(Action.Read, Resource.Configs)
   @ApiQuery({ type: QueryFilterDto, required: false })
   count(
     @Meta() meta: Metadata,
@@ -91,38 +91,38 @@ export class SessionsController {
   }
 
   @Post()
+  @SetScope(Scope.WriteConfigs)
   @UseInterceptors(CreateInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
-  @SetPolicy(Action.Create, Resource.IdentitySessions)
+  @SetPolicy(Action.Create, Resource.Configs)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   create(
     @Meta() meta: Metadata,
-    @Body() data: CreateSessionDto,
-  ): Observable<SessionSerializer> {
+    @Body() data: CreateConfigDto,
+  ): Observable<ConfigSerializer> {
     return this.provider.service
       .create(data, toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Get()
+  @SetScope(Scope.ReadConfigs)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetPolicy(Action.Read, Resource.Configs)
   @ApiQuery({ type: FilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
   find(
     @Meta() meta: Metadata,
     @Filter() filter: FilterDto,
-  ): Observable<SessionsSerializer> {
+  ): Observable<ConfigsSerializer> {
     return this.provider.service
       .find(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionsSerializer, 'array'));
+      .pipe(mapToInstance(ConfigsSerializer, 'array'));
   }
 
   @Sse('sse')
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetScope(Scope.ReadConfigs)
+  @SetPolicy(Action.Read, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
-  @ApiResponse({ type: SessionSerializer, status: HttpStatus.OK })
+  @ApiResponse({ type: ConfigSerializer, status: HttpStatus.OK })
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
@@ -133,106 +133,106 @@ export class SessionsController {
         (data) =>
           ({
             id: data.id,
-            data: perm.filter(plainToInstance(SessionSerializer, data)),
+            data: perm.filter(plainToInstance(ConfigSerializer, data)),
           } as unknown as MessageEvent),
       ),
     );
   }
 
   @Get(':id')
+  @SetScope(Scope.ReadConfigs)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ReadIdentitySessions)
+  @SetPolicy(Action.Read, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Read, Resource.IdentitySessions)
   @ApiParam({ type: String, name: 'id', required: true })
   findOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ConfigSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .findOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Delete(':id')
+  @SetScope(Scope.WriteConfigs)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetPolicy(Action.Delete, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Delete, Resource.IdentitySessions)
   @ApiParam({ type: String, name: 'id', required: true })
   deleteOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ConfigSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .deleteOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Put(':id/restore')
+  @SetScope(Scope.WriteConfigs)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetPolicy(Action.Restore, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Restore, Resource.IdentitySessions)
   @ApiParam({ type: String, name: 'id', required: true })
   restoreOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ConfigSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .restoreOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Delete(':id/destroy')
+  @SetScope(Scope.ManageConfigs)
   @UseInterceptors(FilterInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
+  @SetPolicy(Action.Destroy, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Destroy, Resource.IdentitySessions)
   @ApiParam({ type: String, name: 'id', required: true })
   destroyOne(
     @Meta() meta: Metadata,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ConfigSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .destroyOne(toRaw(filter), toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Patch(':id')
-  @SetScope(Scope.WriteIdentitySessions)
+  @SetScope(Scope.WriteConfigs)
+  @SetPolicy(Action.Update, Resource.Configs)
   @ApiQuery({ type: OneFilterDto, required: false })
-  @SetPolicy(Action.Update, Resource.IdentitySessions)
   @UseInterceptors(FieldInterceptor, FilterInterceptor)
   @ApiParam({ type: String, name: 'id', required: true })
   updateOne(
     @Meta() meta: Metadata,
-    @Body() data: UpdateSessionDto,
+    @Body() data: UpdateConfigDto,
     @Filter() filter: OneFilterDto,
     @Param('id', ParseMongoIdPipe) id: string,
-  ): Observable<SessionSerializer> {
+  ): Observable<ConfigSerializer> {
     assignIdToFilterQuery(filter, id);
     return this.provider.service
       .updateOne({ data, filter: toRaw(filter) }, toGrpcMeta(meta))
-      .pipe(mapToInstance(SessionSerializer));
+      .pipe(mapToInstance(ConfigSerializer));
   }
 
   @Patch('bulk')
+  @SetScope(Scope.ManageConfigs)
   @UseInterceptors(FieldInterceptor)
-  @SetScope(Scope.ManageIdentitySessions)
+  @SetPolicy(Action.Update, Resource.Configs)
   @ApiQuery({ type: QueryFilterDto, required: false })
-  @SetPolicy(Action.Update, Resource.IdentitySessions)
   updateBulk(
     @Meta() meta: Metadata,
-    @Body() data: UpdateSessionDto,
+    @Body() data: UpdateConfigDto,
     @Filter() filter: QueryFilterDto,
   ): Observable<TotalSerializer> {
     return this.provider.service

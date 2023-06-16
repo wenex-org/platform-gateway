@@ -62,8 +62,8 @@ import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
 @ApiBearerAuth()
+@ApiTags('grants')
 @Controller('grants')
-@ApiTags('auth', 'grants')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
 @UseInterceptors(RateLimitInterceptor)
