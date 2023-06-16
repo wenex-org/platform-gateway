@@ -6,7 +6,6 @@ import { Global, Module } from '@nestjs/common';
 import { RedisModule } from '@app/redis';
 
 import { AuthenticationController } from './authentication.controller';
-import { AuthenticationResolver } from './authentication.resolver';
 import { clientsModuleOptions } from './authentication.const';
 
 @Global()
@@ -25,7 +24,7 @@ import { clientsModuleOptions } from './authentication.const';
     }),
   ],
   controllers: [AuthenticationController],
-  providers: [AuthenticationProvider, AuthenticationResolver],
+  providers: [AuthenticationProvider],
   exports: [AuthenticationProvider],
 })
 export class AuthenticationModule {}
