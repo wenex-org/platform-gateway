@@ -2,9 +2,11 @@ import { ApolloServerPluginLandingPageLocalDefault } from '@apollo/server/plugin
 import { ApolloDriver, ApolloDriverConfig } from '@nestjs/apollo';
 import { PrometheusModule } from '@willsoto/nestjs-prometheus';
 import { ComplexityPlugin, DateScalar } from './common';
+import { JWT_SECRET } from '@app/common/configs';
 import { GraphQLModule } from '@nestjs/graphql';
 import GraphQLJSON from 'graphql-type-json';
 import { HealthModule } from '@app/health';
+import { JwtModule } from '@nestjs/jwt';
 import { Module } from '@nestjs/common';
 import { join } from 'path';
 
@@ -24,6 +26,7 @@ import * as modules from './modules';
       autoSchemaFile: join(process.cwd(), 'schema.gql'),
       plugins: [ApolloServerPluginLandingPageLocalDefault()],
     }),
+    JwtModule.register({ secret: JWT_SECRET(), global: true }),
   ],
   providers: [DateScalar, ComplexityPlugin],
 })
