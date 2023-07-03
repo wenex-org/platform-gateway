@@ -14,6 +14,7 @@ import {
 } from '@app/common/interceptors';
 import { ApiBearerAuth, ApiQuery, ApiResponse, ApiTags } from '@nestjs/swagger';
 import { AuthGuard, PolicyGuard, ScopeGuard } from '@app/common/guards';
+import { CassandraFilterDto, OneFilterDto } from '@app/common/dto';
 import { Resource, Scope, Action } from '@app/common/enums';
 import { SetPolicy, SetScope } from '@app/common/metadatas';
 import { Filter, Meta, Perm } from '@app/common/decorators';
@@ -24,7 +25,6 @@ import { ArchivesProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
 import { ValidationPipe } from '@app/common/pipes';
 import { Metadata } from '@app/common/interfaces';
-import { OneFilterDto } from '@app/common/dto';
 import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
@@ -51,7 +51,7 @@ export class ArchivesController {
   cursor(
     @Meta() meta: Metadata,
     @Perm() perm: Permission,
-    @Filter() filter: OneFilterDto,
+    @Filter() filter: CassandraFilterDto,
   ): Observable<MessageEvent> {
     return this.provider.cursor(filter, { meta }).pipe(
       map(
