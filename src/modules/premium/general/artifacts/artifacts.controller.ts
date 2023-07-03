@@ -1,6 +1,5 @@
 import {
   Body,
-  ClassSerializerInterceptor,
   Controller,
   Delete,
   Get,
@@ -61,12 +60,11 @@ import { Permission } from 'abacl';
 @Controller('artifacts')
 @UsePipes(ValidationPipe)
 @UseFilters(AllExceptionsFilter)
-@UseInterceptors(RateLimitInterceptor)
 @UseGuards(AuthGuard, ScopeGuard, PolicyGuard)
 @UseInterceptors(
-  AuthorityInterceptor,
   SetMetadataInterceptor,
-  ClassSerializerInterceptor,
+  AuthorityInterceptor,
+  RateLimitInterceptor,
   new SentryInterceptor({ version: true }),
 )
 export class ArtifactsController {

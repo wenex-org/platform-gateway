@@ -1,6 +1,5 @@
 import {
   Body,
-  ClassSerializerInterceptor,
   Controller,
   Post,
   UseFilters,
@@ -37,9 +36,8 @@ import { Observable } from 'rxjs';
 @UseFilters(AllExceptionsFilter)
 @UseGuards(AuthGuard, ScopeGuard)
 @UseInterceptors(
-  RateLimitInterceptor,
   SetMetadataInterceptor,
-  ClassSerializerInterceptor,
+  RateLimitInterceptor,
   new SentryInterceptor({ version: true }),
 )
 export class AuthenticationController {
