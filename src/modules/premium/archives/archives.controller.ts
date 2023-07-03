@@ -25,6 +25,7 @@ import { ArchivesProvider } from '@app/common/providers';
 import { plainToInstance } from 'class-transformer';
 import { ValidationPipe } from '@app/common/pipes';
 import { Metadata } from '@app/common/interfaces';
+import { toGrpcMeta } from '@app/common/utils';
 import { map, Observable } from 'rxjs';
 import { Permission } from 'abacl';
 
@@ -53,12 +54,12 @@ export class ArchivesController {
     @Perm() perm: Permission,
     @Filter() filter: CassandraFilterDto,
   ): Observable<MessageEvent> {
-    return this.provider.cursor(filter, { meta }).pipe(
+    return this.provider.service.cursor(filter, toGrpcMeta(meta)).pipe(
       map(
         (data) =>
           ({
-            id: data.value.id,
-            data: perm.filter(plainToInstance(ArchiveSerializer, data.value)),
+            id: data.id,
+            data: perm.filter(plainToInstance(ArchiveSerializer, data)),
           } as unknown as MessageEvent),
       ),
     );
