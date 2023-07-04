@@ -17,7 +17,7 @@ import helmet from 'helmet';
 const { GATEWAY } = APP;
 
 async function bootstrap() {
-  if (NODE_ENV().IS_PRODUCTION) await initTracing(['http', 'grpc']);
+  if (NODE_ENV().IS_PRODUCTION) await initTracing(['http', 'kafka', 'grpc']);
 
   const app = await NestFactory.create(GatewayModule, { cors: true });
 
